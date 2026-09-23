@@ -32,7 +32,7 @@ $assets_base    = isset($assets_path) ? htmlspecialchars($assets_path, ENT_QUOTE
         <i data-lucide="layout-dashboard"></i>
         <span>Dashboard</span>
       </a>
-      <a href="reports.php" class="nav-item <?= ($current_page === 'reports') ? 'active' : '' ?>">
+      <a href="report.php" class="nav-item <?= in_array($current_page, ['reports', 'report'], true) ? 'active' : '' ?>">
         <i data-lucide="file-text"></i>
         <span>Reports</span>
         <span class="badge-count">24</span>
