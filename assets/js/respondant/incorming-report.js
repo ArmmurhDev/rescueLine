@@ -129,9 +129,6 @@ window.getIncomingReportsHTML = function() {
                 <th>Emergency Type</th>
                 <th>Location</th>
                 <th>Reporter</th>
-                <th>Time</th>
-                <th>Priority</th>
-                <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -239,7 +236,7 @@ function initIncomingReports() {
     if (!reports || reports.length === 0) {
       const emptyMsg = `
         <tr>
-          <td colspan="9">
+          <td colspan="6">
             <div class="empty-state">
               <i data-lucide="inbox"></i>
               <h3>No Incoming Reports</h3>
@@ -286,21 +283,12 @@ function initIncomingReports() {
               <span class="time">${escapeHTML(r.time)}</span>
             </div>
           </td>
-          <td><span class="time-text">${escapeHTML(r.time)}</span></td>
-          <td><span class="priority-badge ${escapeHTML(r.priority)}">${escapeHTML(capitalize(r.priority))}</span></td>
-          <td><span class="status-badge ${escapeHTML(r.status)}">${escapeHTML(formatStatus(r.status))}</span></td>
           <td>
             <div class="action-buttons">
-              <a href="report-details.php?id=${encodeURIComponent(r.id)}" class="action-btn action-btn-view">
+              <a href="report-details.php?id=${encodeURIComponent(r.id)}" class="action-btn action-btn-view" onclick="if(window.displayReportDetails){event.preventDefault();window.displayReportDetails('${escapeHTML(r.id)}');}">
                 <i data-lucide="eye"></i>
                 View
               </a>
-              ${r.status === 'new' ? `
-                <button type="button" class="action-btn action-btn-accept" onclick="window.acceptReport('${escapeHTML(r.id)}')">
-                  <i data-lucide="check"></i>
-                  Accept
-                </button>
-              ` : ''}
             </div>
           </td>
         </tr>
@@ -340,16 +328,10 @@ function initIncomingReports() {
             </div>
           </div>
           <div class="report-card-actions">
-            <a href="report-details.php?id=${encodeURIComponent(r.id)}" class="action-btn action-btn-view">
+            <a href="report-details.php?id=${encodeURIComponent(r.id)}" class="action-btn action-btn-view" onclick="if(window.displayReportDetails){event.preventDefault();window.displayReportDetails('${escapeHTML(r.id)}');}">
               <i data-lucide="eye"></i>
               View Details
             </a>
-            ${r.status === 'new' ? `
-              <button type="button" class="action-btn action-btn-accept" onclick="window.acceptReport('${escapeHTML(r.id)}')">
-                <i data-lucide="check"></i>
-                Accept
-              </button>
-            ` : ''}
           </div>
         </div>
       `).join('');
@@ -454,7 +436,11 @@ function initIncomingReports() {
      GLOBAL ACTION HANDLERS
      ========================================================= */
   window.viewReport = function(id) {
-    window.location.href = `report-details.php?id=${encodeURIComponent(id)}`;
+    if (typeof window.displayReportDetails === 'function') {
+      window.displayReportDetails(id);
+    } else {
+      window.location.href = `report-details.php?id=${encodeURIComponent(id)}`;
+    }
   };
 
   window.acceptReport = function(id) {

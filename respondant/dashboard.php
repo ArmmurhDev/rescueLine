@@ -10,7 +10,8 @@ $page_description = 'RescueLine - Emergency Incident Reporting & Response Dashbo
 $active_page      = 'dashboard';
 $extra_css        = [
     '../assets/css/respondant/dashboard.css',
-    '../assets/css/respondant/incorming-report.css'
+    '../assets/css/respondant/incorming-report.css',
+    '../assets/css/respondant/active-responses.css'
 ];
 
 // Reusable Header & Sidebar
@@ -258,6 +259,7 @@ require_once __DIR__ . '/../inc/sidebar_respondant.php';
 
 <!-- Custom Page Scripts -->
 <script src="../assets/js/respondant/incorming-report.js"></script>
+<script src="../assets/js/respondant/active-responses.js"></script>
 <script src="../assets/js/respondant/dashboard.js"></script>
 
 </body>

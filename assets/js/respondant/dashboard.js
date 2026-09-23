@@ -600,6 +600,12 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (pageKey === 'incoming_reports' || pageKey === 'incorming-report') {
       targetLink = document.querySelector('.sidebar a[href*="incorming-report"]') || 
                    document.querySelector('.sidebar a[href*="incoming-reports"]');
+    } else if (pageKey === 'active_responses' || pageKey === 'active-responses') {
+      targetLink = document.querySelector('.sidebar a[href*="active-responses"]');
+    } else if (pageKey === 'response_history' || pageKey === 'response-history') {
+      targetLink = document.querySelector('.sidebar a[href*="response-history"]');
+    } else if (pageKey === 'notifications') {
+      targetLink = document.querySelector('.sidebar a[href*="notifications"]');
     }
 
     if (targetLink) {
@@ -658,6 +664,138 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshIcons();
   }
 
+  function displayActiveResponsesContent() {
+    const target = document.querySelector('.content');
+    if (!target) return;
+
+    // 1. Ensure active responses stylesheet is present
+    if (!document.getElementById('css-active-responses')) {
+      const link = document.createElement('link');
+      link.id = 'css-active-responses';
+      link.rel = 'stylesheet';
+      link.href = '../assets/css/respondant/active-responses.css';
+      document.head.appendChild(link);
+    }
+
+    // 2. Render Active Responses template HTML directly
+    if (typeof window.getActiveResponsesHTML === 'function') {
+      target.innerHTML = window.getActiveResponsesHTML();
+    }
+
+    // 3. Update Topnav title
+    const pageTitleH2 = document.querySelector('.page-title h2');
+    const pageTitleP = document.querySelector('.page-title p');
+    if (pageTitleH2) pageTitleH2.textContent = 'Active Responses';
+    if (pageTitleP) pageTitleP.textContent = 'Monitor and manage ongoing emergency responses in real-time';
+
+    // 4. Update sidebar active item
+    updateSidebarActive('active_responses');
+
+    // 5. Initialize script logic
+    if (typeof window.initActiveResponses === 'function') {
+      window.initActiveResponses();
+    } else {
+      const script = document.createElement('script');
+      script.src = '../assets/js/respondant/active-responses.js';
+      script.onload = () => {
+        if (typeof window.initActiveResponses === 'function') {
+          window.initActiveResponses();
+        }
+      };
+      document.body.appendChild(script);
+    }
+
+    refreshIcons();
+  }
+
+  function displayResponseHistoryContent() {
+    const target = document.querySelector('.content');
+    if (!target) return;
+
+    // 1. Ensure response history stylesheet is present
+    if (!document.getElementById('css-response-history')) {
+      const link = document.createElement('link');
+      link.id = 'css-response-history';
+      link.rel = 'stylesheet';
+      link.href = '../assets/css/respondant/response-history.css';
+      document.head.appendChild(link);
+    }
+
+    // 2. Render Response History template HTML directly
+    if (typeof window.getResponseHistoryHTML === 'function') {
+      target.innerHTML = window.getResponseHistoryHTML();
+    }
+
+    // 3. Update Topnav title
+    const pageTitleH2 = document.querySelector('.page-title h2');
+    const pageTitleP = document.querySelector('.page-title p');
+    if (pageTitleH2) pageTitleH2.textContent = 'Response History';
+    if (pageTitleP) pageTitleP.textContent = 'Archive of all resolved emergency responses';
+
+    // 4. Update sidebar active item
+    updateSidebarActive('response_history');
+
+    // 5. Initialize script logic
+    if (typeof window.initResponseHistory === 'function') {
+      window.initResponseHistory();
+    } else {
+      const script = document.createElement('script');
+      script.src = '../assets/js/respondant/response-history.js';
+      script.onload = () => {
+        if (typeof window.initResponseHistory === 'function') {
+          window.initResponseHistory();
+        }
+      };
+      document.body.appendChild(script);
+    }
+
+    refreshIcons();
+  }
+
+  function displayNotificationsContent() {
+    const target = document.querySelector('.content');
+    if (!target) return;
+
+    // 1. Ensure notifications stylesheet is present
+    if (!document.getElementById('css-notifications')) {
+      const link = document.createElement('link');
+      link.id = 'css-notifications';
+      link.rel = 'stylesheet';
+      link.href = '../assets/css/respondant/notifications.css';
+      document.head.appendChild(link);
+    }
+
+    // 2. Render Notifications template HTML directly
+    if (typeof window.getNotificationsHTML === 'function') {
+      target.innerHTML = window.getNotificationsHTML();
+    }
+
+    // 3. Update Topnav title
+    const pageTitleH2 = document.querySelector('.page-title h2');
+    const pageTitleP = document.querySelector('.page-title p');
+    if (pageTitleH2) pageTitleH2.textContent = 'Notifications';
+    if (pageTitleP) pageTitleP.textContent = 'Manage emergency notifications and alerts';
+
+    // 4. Update sidebar active item
+    updateSidebarActive('notifications');
+
+    // 5. Initialize script logic
+    if (typeof window.initNotifications === 'function') {
+      window.initNotifications();
+    } else {
+      const script = document.createElement('script');
+      script.src = '../assets/js/respondant/notifications.js';
+      script.onload = () => {
+        if (typeof window.initNotifications === 'function') {
+          window.initNotifications();
+        }
+      };
+      document.body.appendChild(script);
+    }
+
+    refreshIcons();
+  }
+
   function displayDashboardContent() {
     const target = document.querySelector('.content');
     if (!target) return;
@@ -682,6 +820,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if (updateHistory) {
         window.history.pushState({ page: 'incoming_reports', url: 'incorming-report.php' }, '', 'incorming-report.php');
       }
+    } else if (pageKey === 'active_responses' || url.includes('active-responses')) {
+      displayActiveResponsesContent();
+      if (updateHistory) {
+        window.history.pushState({ page: 'active_responses', url: 'active-responses.php' }, '', 'active-responses.php');
+      }
+    } else if (pageKey === 'response_history' || url.includes('response-history')) {
+      displayResponseHistoryContent();
+      if (updateHistory) {
+        window.history.pushState({ page: 'response_history', url: 'response-history.php' }, '', 'response-history.php');
+      }
+    } else if (pageKey === 'notifications' || url.includes('notifications')) {
+      displayNotificationsContent();
+      if (updateHistory) {
+        window.history.pushState({ page: 'notifications', url: 'notifications.php' }, '', 'notifications.php');
+      }
     } else {
       displayDashboardContent();
       if (updateHistory) {
@@ -694,7 +847,15 @@ document.addEventListener('DOMContentLoaded', () => {
   window.RescueNav = {
     navigateTo: navigateTo,
     displayIncomingReportsContent: displayIncomingReportsContent,
-    displayDashboardContent: displayDashboardContent
+    displayActiveResponsesContent: displayActiveResponsesContent,
+    displayResponseHistoryContent: displayResponseHistoryContent,
+    displayNotificationsContent: displayNotificationsContent,
+    displayDashboardContent: displayDashboardContent,
+    displayReportDetails: function(id) {
+      if (typeof window.displayReportDetails === 'function') {
+        window.displayReportDetails(id);
+      }
+    }
   };
 
   // Attach click listener to sidebar links
@@ -703,10 +864,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const href = link.getAttribute('href');
       if (!href || href === '#' || href.startsWith('javascript') || href.includes('logout.php')) return;
 
-      if (href.includes('incorming-report') || href.includes('incoming-reports') || href.includes('dashboard.php')) {
+      if (href.includes('incorming-report') || href.includes('incoming-reports') || href.includes('dashboard.php') || href.includes('active-responses') || href.includes('response-history') || href.includes('notifications')) {
         e.preventDefault();
         closeSidebar();
-        const pageKey = href.includes('dashboard') ? 'dashboard' : 'incoming_reports';
+        let pageKey = 'dashboard';
+        if (href.includes('incorming-report') || href.includes('incoming-reports')) {
+          pageKey = 'incoming_reports';
+        } else if (href.includes('active-responses')) {
+          pageKey = 'active_responses';
+        } else if (href.includes('response-history')) {
+          pageKey = 'response_history';
+        } else if (href.includes('notifications')) {
+          pageKey = 'notifications';
+        }
         navigateTo(href, pageKey, true);
       }
     });
@@ -715,8 +885,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // Browser Back / Forward Button Handling
   window.addEventListener('popstate', (e) => {
     const path = window.location.pathname;
-    if (path.includes('incorming-report') || path.includes('incoming-reports')) {
+    if (path.includes('report-details')) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const reportId = urlParams.get('id') || 'RL-0025';
+      if (typeof window.displayReportDetails === 'function') {
+        window.displayReportDetails(reportId);
+      }
+    } else if (path.includes('incorming-report') || path.includes('incoming-reports')) {
       navigateTo('incorming-report.php', 'incoming_reports', false);
+    } else if (path.includes('active-responses')) {
+      navigateTo('active-responses.php', 'active_responses', false);
+    } else if (path.includes('response-history')) {
+      navigateTo('response-history.php', 'response_history', false);
+    } else if (path.includes('notifications')) {
+      navigateTo('notifications.php', 'notifications', false);
     } else {
       navigateTo('dashboard.php', 'dashboard', false);
     }
@@ -726,13 +908,34 @@ document.addEventListener('DOMContentLoaded', () => {
      PAGE BOOTSTRAP DETERMINATION
      ========================================================= */
   const incomingContainer = document.getElementById('incomingReportsContainer');
+  const activeContainer = document.getElementById('activeResponsesContainer');
+  const historyContainer = document.getElementById('responseHistoryContainer') || document.getElementById('historyBody');
+  const notificationsContainer = document.getElementById('notificationsContainer') || document.getElementById('notificationList');
   const emergencyChartEl = document.getElementById('emergencyChart');
 
-  if (incomingContainer) {
+  if (activeContainer) {
+    // Current page is Active Responses
+    updateSidebarActive('active_responses');
+    if (typeof window.initActiveResponses === 'function') {
+      window.initActiveResponses();
+    }
+  } else if (incomingContainer) {
     // Current page is Incoming Reports
     updateSidebarActive('incoming_reports');
     if (typeof window.initIncomingReports === 'function') {
       window.initIncomingReports();
+    }
+  } else if (historyContainer) {
+    // Current page is Response History
+    updateSidebarActive('response_history');
+    if (typeof window.initResponseHistory === 'function') {
+      window.initResponseHistory();
+    }
+  } else if (notificationsContainer) {
+    // Current page is Notifications
+    updateSidebarActive('notifications');
+    if (typeof window.initNotifications === 'function') {
+      window.initNotifications();
     }
   } else if (emergencyChartEl || document.querySelector('.welcome-card')) {
     // Current page is Dashboard

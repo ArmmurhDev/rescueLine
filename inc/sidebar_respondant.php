@@ -31,7 +31,7 @@ $assets_base = isset($assets_path) ? $assets_path : '../assets';
       </a>
 
       <div>
-        <a href="reports.php" class="nav-item <?= in_array($current_page, ['reports', 'incoming_reports', 'incorming-report', 'active_responses', 'response_history'], true) ? 'active' : '' ?>">
+        <a href="#" class="nav-item <?= in_array($current_page, ['reports', 'incoming_reports', 'incorming-report', 'active_responses', 'response_history'], true) ? 'active' : '' ?>">
           <i data-lucide="alert-triangle"></i>
           <span>Emergency Reports</span>
         </a>
@@ -39,21 +39,21 @@ $assets_base = isset($assets_path) ? $assets_path : '../assets';
           <a href="incorming-report.php" class="nav-item <?= in_array($current_page, ['incoming_reports', 'incorming-report'], true) ? 'active' : '' ?>" data-ajax="true" data-page="incoming_reports">
             <span>Incoming Reports</span>
           </a>
-          <a href="active-responses.php" class="nav-item <?= ($current_page === 'active_responses') ? 'active' : '' ?>">
+          <a href="active-responses.php" class="nav-item <?= in_array($current_page, ['active_responses', 'active-responses'], true) ? 'active' : '' ?>" data-ajax="true" data-page="active_responses">
             <span>Active Responses</span>
           </a>
-          <a href="response-history.php" class="nav-item <?= ($current_page === 'response_history') ? 'active' : '' ?>">
+          <a href="response-history.php" class="nav-item <?= in_array($current_page, ['response_history', 'response-history'], true) ? 'active' : '' ?>" data-ajax="true" data-page="response_history">
             <span>Response History</span>
           </a>
         </div>
       </div>
 
-      <a href="notifications.php" class="nav-item <?= ($current_page === 'notifications') ? 'active' : '' ?>">
+      <a href="notifications.php" class="nav-item <?= ($current_page === 'notifications') ? 'active' : '' ?>" data-ajax="true" data-page="notifications">
         <i data-lucide="bell"></i>
         <span>Notifications</span>
       </a>
 
-      <a href="profile.php" class="nav-item <?= ($current_page === 'profile') ? 'active' : '' ?>">
+      <!---a href="profile.php" class="nav-item <?= ($current_page === 'profile') ? 'active' : '' ?>">
         <i data-lucide="user"></i>
         <span>Profile</span>
       </a>
@@ -62,7 +62,7 @@ $assets_base = isset($assets_path) ? $assets_path : '../assets';
         <i data-lucide="settings"></i>
         <span>Settings</span>
       </a>
-    </div>
+    </div--->
   </nav>
 
   <div class="sidebar-footer">

@@ -1,0 +1,711 @@
+/* =========================================================
+   RESCUELINE - REPORT DETAILS STYLESHEET
+   Matches core RescueLine SaaS dark/light design system
+   ========================================================= */
+
+.rd-container {
+  padding: 0;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* =========================================================
+   ACTION BAR (Top Navigation / Quick Actions)
+   ========================================================= */
+.rd-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.rd-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-soft);
+  padding: 8px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.rd-back-btn:hover {
+  background: var(--card-2);
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.rd-back-btn i {
+  width: 16px;
+  height: 16px;
+}
+
+.rd-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rd-btn {
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.rd-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.rd-btn i {
+  width: 15px;
+  height: 15px;
+}
+
+.rd-btn-dispatch {
+  background: var(--blue);
+  color: white;
+}
+.rd-btn-dispatch:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.rd-btn-onscene {
+  background: var(--orange);
+  color: white;
+}
+.rd-btn-onscene:hover:not(:disabled) {
+  background: #d97706;
+  transform: translateY(-1px);
+}
+
+.rd-btn-resolve {
+  background: var(--green);
+  color: white;
+}
+.rd-btn-resolve:hover:not(:disabled) {
+  background: var(--green-hover);
+  transform: translateY(-1px);
+}
+
+.rd-btn-escalate {
+  background: var(--red-soft);
+  color: var(--red);
+  border: 1px solid rgba(229, 57, 53, 0.25);
+}
+.rd-btn-escalate:hover:not(:disabled) {
+  background: var(--red);
+  color: white;
+}
+
+/* =========================================================
+   INCIDENT HEADER BANNER
+   ========================================================= */
+.rd-header-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow);
+}
+
+.rd-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rd-id-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rd-id {
+  font-size: 28px;
+  font-weight: 800;
+  font-family: 'SF Mono', Monaco, monospace;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+
+.rd-priority-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.rd-priority-badge.critical {
+  background: var(--red-soft);
+  color: var(--red);
+}
+.rd-priority-badge.high {
+  background: var(--orange-soft);
+  color: var(--orange);
+}
+.rd-priority-badge.normal {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.rd-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.rd-type-badge i {
+  width: 18px;
+  height: 18px;
+}
+.rd-type-badge.fire i { color: var(--red); }
+.rd-type-badge.accident i { color: var(--orange); }
+.rd-type-badge.medical i { color: var(--blue); }
+.rd-type-badge.flood i { color: var(--cyan); }
+.rd-type-badge.security i { color: var(--purple); }
+
+/* Elapsed Timer Box */
+.rd-timer-box {
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 20px;
+  text-align: center;
+  min-width: 160px;
+}
+
+.rd-timer-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.rd-timer-val {
+  font-size: 26px;
+  font-weight: 800;
+  font-family: 'SF Mono', Monaco, monospace;
+  color: var(--text);
+  line-height: 1;
+}
+
+.rd-timer-val.urgent {
+  color: var(--red);
+}
+
+/* =========================================================
+   TWO-COLUMN CONTENT GRID
+   ========================================================= */
+.rd-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .rd-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rd-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Reusable Card */
+.rd-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+
+.rd-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rd-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rd-card-title i {
+  width: 18px;
+  height: 18px;
+  color: var(--green);
+}
+
+/* =========================================================
+   RESPONSE PROGRESS TIMELINE
+   ========================================================= */
+.rd-timeline {
+  position: relative;
+  padding-left: 20px;
+}
+
+.rd-step {
+  position: relative;
+  padding-bottom: 30px;
+  padding-left: 36px;
+}
+
+.rd-step:last-child {
+  padding-bottom: 0;
+}
+
+/* Timeline Vertical Line */
+.rd-step::before {
+  content: '';
+  position: absolute;
+  left: 17px;
+  top: 36px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border-strong);
+}
+
+.rd-step:last-child::before {
+  display: none;
+}
+
+.rd-step.completed::before {
+  background: var(--green);
+}
+
+/* Bullet icon circle */
+.rd-step-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-2);
+  border: 2px solid var(--border-strong);
+  color: var(--muted);
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.rd-step-indicator i {
+  width: 16px;
+  height: 16px;
+}
+
+.rd-step.completed .rd-step-indicator {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+.rd-step.current .rd-step-indicator {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: white;
+  box-shadow: 0 0 0 4px var(--orange-soft);
+}
+
+/* Pulsating Animation for Current Step */
+.rd-step.current .rd-step-indicator::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--orange);
+  animation: rd-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes rd-pulse {
+  0% { transform: scale(0.9); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.rd-step-content {
+  padding-top: 4px;
+}
+
+.rd-step-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.rd-step-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.rd-step.pending .rd-step-name {
+  color: var(--muted);
+}
+
+.rd-step-time {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.rd-step.current .rd-step-time {
+  color: var(--orange);
+  font-weight: 600;
+}
+
+.rd-step-desc {
+  font-size: 13px;
+  color: var(--text-soft);
+  line-height: 1.4;
+}
+
+.rd-step.pending .rd-step-desc {
+  color: var(--muted);
+}
+
+/* =========================================================
+   INCIDENT LOCATION CARD
+   ========================================================= */
+.rd-location-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rd-loc-item .rd-loc-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.rd-loc-item .rd-loc-val {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rd-btn-maps {
+  align-self: flex-start;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.rd-btn-maps:hover {
+  background: var(--green);
+  color: white;
+  border-color: var(--green);
+}
+
+/* =========================================================
+   REPORTER CONTACT CARD
+   ========================================================= */
+.rd-contact-box {
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.rd-phone-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.rd-phone-num {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: 'SF Mono', Monaco, monospace;
+  color: var(--text);
+  transition: color 0.15s ease;
+}
+
+.rd-phone-num:hover {
+  color: var(--green);
+}
+
+.rd-copy-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rd-copy-btn:hover {
+  background: var(--card-3);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.rd-contact-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.rd-contact-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.rd-contact-btn.call {
+  background: var(--green);
+  color: white;
+}
+.rd-contact-btn.call:hover {
+  background: var(--green-hover);
+}
+
+.rd-contact-btn.sms {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.rd-contact-btn.sms:hover {
+  background: var(--card-3);
+  border-color: var(--border-strong);
+}
+
+/* =========================================================
+   INCIDENT DETAILS LIST
+   ========================================================= */
+.rd-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rd-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rd-detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+.rd-detail-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rd-assigned-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.rd-assigned-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--green), #006039);
+  color: white;
+  font-weight: 700;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rd-assigned-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.rd-assigned-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.rd-assigned-role {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* =========================================================
+   INCIDENT NOTES
+   ========================================================= */
+.rd-notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.rd-note-critical {
+  background: var(--red-soft);
+  border: 1px solid rgba(229, 57, 53, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--red);
+  line-height: 1.4;
+}
+
+.rd-note-critical i {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.rd-note-item {
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text-soft);
+  line-height: 1.4;
+}
+
+.rd-note-meta {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.rd-add-note-btn {
+  width: 100%;
+  padding: 8px;
+  background: var(--card-2);
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rd-add-note-btn:hover {
+  background: var(--card-3);
+  color: var(--text);
+  border-color: var(--green);
+}
+
+/* =========================================================
+   TOAST NOTIFICATION
+   ========================================================= */
+.rd-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--green);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  z-index: 9999;
+}
+
+.rd-toast.active {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.rd-toast i {
+  width: 16px;
+  height: 16px;
+}
