@@ -32,12 +32,12 @@ $assets_base    = isset($assets_path) ? htmlspecialchars($assets_path, ENT_QUOTE
         <i data-lucide="layout-dashboard"></i>
         <span>Dashboard</span>
       </a>
-      <a href="report.php" class="nav-item <?= in_array($current_page, ['reports', 'report'], true) ? 'active' : '' ?>">
+      <a href="respondents.php" class="nav-item <?= in_array($current_page, ['reports', 'report_list'], true) ? 'active' : '' ?>">
         <i data-lucide="file-text"></i>
         <span>Reports</span>
         <span class="badge-count">24</span>
       </a>
-      <a href="respondents.php" class="nav-item <?= ($current_page === 'respondents') ? 'active' : '' ?>">
+      <a href="report.php" class="nav-item <?= in_array($current_page, ['respondents', 'respondent'], true) ? 'active' : '' ?>">
         <i data-lucide="users"></i>
         <span>Respondents</span>
       </a>
@@ -56,14 +56,14 @@ $assets_base    = isset($assets_path) ? htmlspecialchars($assets_path, ENT_QUOTE
         <div class="role"><?= $admin_role ?></div>
       </div>
     </div>
-    <a href="profile.php" class="nav-item <?= ($current_page === 'profile') ? 'active' : '' ?>">
+    <!---a href="profile.php" class="nav-item <?= ($current_page === 'profile') ? 'active' : '' ?>">
       <i data-lucide="user"></i>
       <span>Profile</span>
     </a>
     <a href="settings.php" class="nav-item <?= ($current_page === 'settings') ? 'active' : '' ?>">
       <i data-lucide="settings"></i>
       <span>Settings</span>
-    </a>
+    </a--->
     <a href="../auth/logout.php" class="nav-item">
       <i data-lucide="log-out"></i>
       <span>Logout</span>

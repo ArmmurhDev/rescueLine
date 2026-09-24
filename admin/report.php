@@ -5,9 +5,9 @@
  */
 
 // Page Configuration
-$page_title       = 'RescueLine • Reports & Respondents';
-$page_description = 'RescueLine - Emergency Incident Reporting & Response Admin Management';
-$active_page      = 'reports';
+$page_title       = 'RescueLine • Respondents';
+$page_description = 'RescueLine - Emergency Incident Response Respondents Management';
+$active_page      = 'respondents';
 $extra_css        = [
     '../assets/css/admin/index.css',
     '../assets/css/admin/report.css'
