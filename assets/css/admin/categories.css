@@ -229,9 +229,17 @@
 }
 
 /* =========================================================
-   SECTION CARD & FILTERS
+   FILTER CARD & TABLE CARD
    ========================================================= */
-.section-card {
+.filter-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.table-card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -239,7 +247,7 @@
   margin-bottom: 24px;
 }
 
-.section-header {
+.table-card-header {
   padding: 18px 20px;
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -249,7 +257,7 @@
   flex-wrap: wrap;
 }
 
-.section-title {
+.table-card-title {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -258,14 +266,14 @@
   color: var(--text);
 }
 
-.section-title .dot {
+.table-card-title .dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--green);
 }
 
-.section-title .count {
+.table-card-title .count {
   font-size: 12px;
   font-weight: 600;
   color: var(--muted);
@@ -275,10 +283,9 @@
 }
 
 .filter-bar {
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
   align-items: center;
 }
@@ -339,52 +346,33 @@
   border-color: var(--green);
 }
 
-/* =========================================================
-   TABS
-   ========================================================= */
-.tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-  padding: 0 20px;
-  gap: 4px;
-  overflow-x: auto;
-}
-
-.tab {
-  padding: 14px 18px;
-  font-size: 13px;
+.clear-filters {
+  font-size: 12px;
   font-weight: 600;
-  color: var(--muted);
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  display: flex;
+  color: var(--red);
+  display: none;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  background: var(--red-soft);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 1px solid rgba(229, 57, 53, 0.2);
 }
 
-.tab:hover {
-  color: var(--text);
+.clear-filters.visible {
+  display: inline-flex;
 }
 
-.tab.active {
-  color: var(--green);
-  border-bottom-color: var(--green);
+.clear-filters:hover {
+  background: var(--red);
+  color: white;
 }
 
-.tab .tab-count {
-  font-size: 10px;
-  font-weight: 700;
-  background: var(--card-2);
-  color: var(--muted);
-  padding: 2px 7px;
-  border-radius: 10px;
-}
-
-.tab.active .tab-count {
-  background: var(--green-soft);
-  color: var(--green);
+.clear-filters i {
+  width: 14px;
+  height: 14px;
 }
 
 /* =========================================================

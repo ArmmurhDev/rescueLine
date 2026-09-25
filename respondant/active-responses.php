@@ -181,7 +181,6 @@ require_once __DIR__ . '/../inc/sidebar_respondant.php';
                   <th>Report ID</th>
                   <th>Type</th>
                   <th>Location</th>
-                  <th>Elapsed</th>
                   <th>Status</th>
                   <th>Priority</th>
                   <th>Actions</th>

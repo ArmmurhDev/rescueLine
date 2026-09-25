@@ -1,0 +1,53 @@
+# ==============================================================================
+# RescueLine - System, Software & Environment Requirements
+# Emergency Incident Reporting & Rapid Response Coordination Platform
+# ==============================================================================
+
+# 1. CORE SERVER & RUNTIME ENVIRONMENT
+# ------------------------------------------------------------------------------
+PHP >= 8.1.0 (Recommended: PHP 8.2 or 8.3)
+Apache HTTP Server >= 2.4 (with mod_rewrite enabled) OR Nginx >= 1.20
+MySQL >= 5.7.8 OR MariaDB >= 10.4.0 (InnoDB Engine with utf8mb4 support)
+XAMPP / WAMP / Laragon / Docker / LAMP Stack (for local development)
+
+# 2. REQUIRED PHP EXTENSIONS
+# ------------------------------------------------------------------------------
+# Ensure the following extensions are enabled in your php.ini:
+pdo               # Core database abstraction interface
+pdo_mysql         # MySQL database driver for PDO
+curl              # Required for Africa's Talking SMS API calls
+mbstring          # Multibyte string support for secure string handling
+json              # JSON encoding/decoding for REST APIs
+openssl           # Cryptographic functions for session keys and hashing
+session           # Native session management
+filter            # Data sanitization and email/phone filtering
+
+# 3. TUNNELING & WEBHOOK UTILITIES (For USSD / SMS Simulator & Testing)
+# ------------------------------------------------------------------------------
+# One of the following tunneling tools is required to expose localhost to Africa's Talking:
+cloudflared >= 2024.1.0   # Cloudflare Quick Tunnel (Free, no port timeouts)
+ngrok >= 3.0.0            # Ngrok HTTP Tunnel (Alternative: `ngrok http 80`)
+localtunnel               # LocalTunnel (Alternative: `npx localtunnel --port 80`)
+
+# 4. EXTERNAL APIs & TELECOMMUNICATION GATEWAYS
+# ------------------------------------------------------------------------------
+Africa's Talking Sandbox Account (Free developer account at https://africastalking.com)
+Africa's Talking USSD Channel (Service code: e.g., *384*384911# or *384*911#)
+Africa's Talking SMS Messaging API (Sandbox username: `sandbox` with generated API Key)
+Africa's Talking Web Simulator (https://simulator.africastalking.com:1517/)
+
+# 5. FRONTEND LIBRARIES & CLIENT-SIDE DEPENDENCIES
+# ------------------------------------------------------------------------------
+HTML5 & CSS3 (Modern Vanilla CSS with CSS Variables & Glassmorphism)
+Vanilla JavaScript ES6+ (Fetch API, DOM manipulation, real-time polling)
+Lucide Icons >= 0.344.0 (Modern lightweight icon library via CDN/npm)
+Chart.js >= 4.4.0 (Interactive dashboard visualization charts)
+Google Fonts (Inter & JetBrains Mono / SF Mono for clean readable typography)
+
+# 6. BROWSER COMPATIBILITY
+# ------------------------------------------------------------------------------
+Google Chrome >= 100
+Mozilla Firefox >= 100
+Microsoft Edge >= 100
+Apple Safari >= 15
+Mobile Chrome / Mobile Safari (iOS & Android responsive support)

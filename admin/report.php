@@ -1,13 +1,13 @@
 <?php
 /**
- * RescueLine - Admin Reports & Respondents Management
+ * RescueLine - Admin Emergency Reports Management
  * Emergency Incident Reporting & Response Management
  */
 
 // Page Configuration
-$page_title       = 'RescueLine • Respondents';
-$page_description = 'RescueLine - Emergency Incident Response Respondents Management';
-$active_page      = 'respondents';
+$page_title       = 'RescueLine • Emergency Reports';
+$page_description = 'RescueLine - Emergency Incident Reporting & Incident Monitoring Dashboard';
+$active_page      = 'reports';
 $extra_css        = [
     '../assets/css/admin/index.css',
     '../assets/css/admin/report.css'
@@ -28,8 +28,8 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
           <i data-lucide="menu"></i>
         </button>
         <div class="page-title">
-          <h2>Reports & Respondents</h2>
-          <p>Manage emergency respondents and their assigned coverage areas</p>
+          <h2>Emergency Reports</h2>
+          <p>Manage and monitor all emergency reports across the system</p>
         </div>
       </div>
 
@@ -104,76 +104,100 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
       <!-- PAGE HEADER -->
       <div class="page-header">
         <div class="page-header-left">
-          <h1>Respondents & Reports</h1>
-          <p>Manage emergency respondents and their assigned coverage areas</p>
+          <h1>Emergency Incident Reports</h1>
+          <p>Live incident feed and real-time response management from the database</p>
         </div>
-        <button class="btn btn-primary" onclick="openAddModal()">
-          <i data-lucide="plus"></i>
-          Add Respondent
+        <button class="btn btn-secondary" onclick="exportReportsCSV()">
+          <i data-lucide="download"></i>
+          Export CSV
         </button>
       </div>
 
-      <!-- STATS ROW -->
+      <!-- STATS ROW (Interactive Status Filters) -->
       <div class="stats-row">
-        <div class="stat-mini green">
-          <div class="stat-mini-icon green"><i data-lucide="users"></i></div>
+        <div class="stat-mini total" data-filter-status="" onclick="filterByStatus('')">
+          <div class="stat-mini-icon blue"><i data-lucide="file-text"></i></div>
           <div class="stat-mini-info">
-            <div class="value" id="statTotal">48</div>
-            <div class="label">Total Respondents</div>
+            <div class="value" id="statTotal">0</div>
+            <div class="label">Total Reports</div>
           </div>
         </div>
-        <div class="stat-mini blue">
-          <div class="stat-mini-icon blue"><i data-lucide="user-check"></i></div>
+        <div class="stat-mini pending" data-filter-status="pending" onclick="filterByStatus('pending')">
+          <div class="stat-mini-icon orange"><i data-lucide="clock"></i></div>
           <div class="stat-mini-info">
-            <div class="value" id="statActive">42</div>
-            <div class="label">Active</div>
+            <div class="value" id="statPending">0</div>
+            <div class="label">Pending</div>
           </div>
         </div>
-        <div class="stat-mini orange">
-          <div class="stat-mini-icon orange"><i data-lucide="user-x"></i></div>
+        <div class="stat-mini responding" data-filter-status="responding" onclick="filterByStatus('responding')">
+          <div class="stat-mini-icon cyan"><i data-lucide="activity"></i></div>
           <div class="stat-mini-info">
-            <div class="value" id="statInactive">6</div>
-            <div class="label">Inactive</div>
+            <div class="value" id="statResponding">0</div>
+            <div class="label">Responding</div>
           </div>
         </div>
-        <div class="stat-mini red">
-          <div class="stat-mini-icon red"><i data-lucide="map-pin"></i></div>
+        <div class="stat-mini resolved" data-filter-status="resolved" onclick="filterByStatus('resolved')">
+          <div class="stat-mini-icon green"><i data-lucide="check-circle-2"></i></div>
           <div class="stat-mini-info">
-            <div class="value">14</div>
-            <div class="label">States Covered</div>
+            <div class="value" id="statResolved">0</div>
+            <div class="label">Resolved</div>
           </div>
         </div>
       </div>
 
-      <!-- FILTER BAR -->
+      <!-- FILTER CARD -->
       <div class="filter-card">
-        <div class="filter-bar">
+        <div class="filter-main">
           <div class="search-box">
             <i data-lucide="search"></i>
-            <input type="text" placeholder="Search respondents by name, phone, or email..." id="searchInput" />
+            <input type="text" placeholder="Search by ID, type, state, LGA, reporter phone, or responder..." id="searchInput" />
           </div>
-          <select class="filter-select" id="stateFilter">
-            <option value="">All States</option>
-            <option value="Kaduna">Kaduna</option>
-            <option value="Kano">Kano</option>
-            <option value="FCT Abuja">FCT Abuja</option>
-            <option value="Lagos">Lagos</option>
-            <option value="Rivers">Rivers</option>
-            <option value="Plateau">Plateau</option>
-            <option value="Niger">Niger</option>
-            <option value="Oyo">Oyo</option>
-            <option value="Enugu">Enugu</option>
-            <option value="Borno">Borno</option>
-          </select>
-          <select class="filter-select" id="statusFilter">
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+          <button class="filter-toggle" id="filterToggle">
+            <i data-lucide="sliders-horizontal"></i>
+            Advanced Filters
+          </button>
           <button class="clear-filters" id="clearFilters" onclick="clearAllFilters()">
             <i data-lucide="x"></i>
             Clear Filters
           </button>
+        </div>
+
+        <div class="advanced-filters" id="advancedFilters">
+          <div class="advanced-grid">
+            <div class="filter-group">
+              <label class="filter-label">State</label>
+              <select class="filter-select" id="stateFilter">
+                <option value="">All States</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">LGA</label>
+              <select class="filter-select" id="lgaFilter" disabled>
+                <option value="">Select state first</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Report Type</label>
+              <select class="filter-select" id="typeFilter">
+                <option value="">All Types</option>
+                <option value="Fire">Fire</option>
+                <option value="Accident">Accident</option>
+                <option value="Medical">Medical</option>
+                <option value="Security">Security</option>
+                <option value="Flood">Flood</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Status</label>
+              <select class="filter-select" id="statusFilter">
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="responding">Responding</option>
+                <option value="resolved">Resolved</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -182,20 +206,34 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
         <div class="table-card-header">
           <div class="table-card-title">
             <span class="dot"></span>
-            All Respondents
-            <span class="count" id="resultCount">48</span>
+            All Reports
+            <span class="count" id="resultCount">0</span>
+          </div>
+          <div class="table-card-actions">
+            <div class="per-page">
+              <span>Show</span>
+              <select id="perPage">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span>entries</span>
+            </div>
           </div>
         </div>
 
         <div class="table-wrap">
-          <table class="resp-table">
+          <table class="report-table">
             <thead>
               <tr>
-                <th>Respondent</th>
-                <th>Phone</th>
-                <th>Email</th>
-                <th>Coverage State</th>
+                <th>Report ID</th>
+                <th>Type</th>
+                <th>Location</th>
+                <th>Reporter</th>
+                <th>Assigned Responder</th>
                 <th>Status</th>
+                <th>Date & Time</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -203,11 +241,10 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
           </table>
         </div>
 
-        <div class="resp-cards" id="respCards"></div>
+        <div class="report-cards" id="reportCards"></div>
 
-        <!-- PAGINATION -->
         <div class="pagination-bar" id="paginationBar">
-          <div class="pagination-info" id="paginationInfo">Showing 1–10 of 48 respondents</div>
+          <div class="pagination-info" id="paginationInfo">Showing 0 of 0 reports</div>
           <div class="pagination-controls" id="paginationControls"></div>
         </div>
       </div>
@@ -216,148 +253,147 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
   </main>
 </div>
 
-<!-- ============ ADD MODAL ============ -->
-<div class="modal-overlay" id="addModal">
+<!-- ============ REASSIGN MODAL ============ -->
+<div class="modal-overlay" id="reassignModal">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-header-text">
-        <h3>Add New Respondent</h3>
-        <p>Create an account and assign a coverage state to a new emergency respondent.</p>
+        <h3>Assign / Reassign Report</h3>
+        <p id="reassignSubtitle">Assign emergency incident <strong id="reassignReportId"></strong> to an active responder.</p>
       </div>
-      <button class="modal-close" onclick="closeModal('addModal')"><i data-lucide="x"></i></button>
+      <button class="modal-close" onclick="closeModal('reassignModal')"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body">
-      <form id="addForm" onsubmit="return handleAdd(event)">
-        <div class="form-group">
-          <label class="form-label">Full Name <span class="required">*</span></label>
-          <input type="text" class="form-input" id="addName" placeholder="e.g. Musa Ibrahim" required />
-          <div class="form-error" id="addNameError">Full name is required</div>
+      <!-- Current assignment -->
+      <div class="current-assignment">
+        <div class="current-assignment-label">Current Assignment</div>
+        <div class="current-assignment-info" id="currentAssignment">
+          <!-- Populated by JS -->
         </div>
-        <div class="form-group">
-          <label class="form-label">Phone Number <span class="required">*</span></label>
-          <input type="tel" class="form-input" id="addPhone" placeholder="e.g. 08031234567" required />
-          <div class="form-error" id="addPhoneError">Valid phone number is required</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Email Address <span class="required">*</span></label>
-          <input type="email" class="form-input" id="addEmail" placeholder="e.g. musa@rescueline.ng" required />
-          <div class="form-error" id="addEmailError">Valid email address is required</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Password <span class="required">*</span></label>
-          <div class="password-wrap">
-            <input type="password" class="form-input" id="addPassword" placeholder="Min. 8 characters" required />
-            <button type="button" class="password-toggle" onclick="togglePassword('addPassword', this)">
-              <i data-lucide="eye"></i>
-            </button>
-          </div>
-          <div class="form-error" id="addPasswordError">Password must be at least 8 characters</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Assigned Coverage State <span class="required">*</span></label>
-          <select class="form-select-input" id="addState" required>
-            <option value="">Select a state...</option>
-            <option value="Kaduna">Kaduna</option>
-            <option value="Kano">Kano</option>
-            <option value="FCT Abuja">FCT Abuja</option>
-            <option value="Lagos">Lagos</option>
-            <option value="Rivers">Rivers</option>
-            <option value="Plateau">Plateau</option>
-            <option value="Niger">Niger</option>
-            <option value="Oyo">Oyo</option>
-            <option value="Enugu">Enugu</option>
-            <option value="Borno">Borno</option>
-          </select>
-          <div class="form-error" id="addStateError">Please select a coverage state</div>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('addModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="handleAdd(event)">
-        <i data-lucide="user-plus"></i>
-        Add Respondent
-      </button>
-    </div>
-  </div>
-</div>
+      </div>
 
-<!-- ============ EDIT MODAL ============ -->
-<div class="modal-overlay" id="editModal">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-header-text">
-        <h3>Edit Respondent</h3>
-        <p>Update respondent information and coverage assignment.</p>
+      <!-- New assignment -->
+      <div class="form-group" style="margin-top: 16px;">
+        <label class="form-label">Select Active Responder <span class="required">*</span></label>
+        <select class="form-select-input" id="respondentSelect">
+          <option value="">Select a responder...</option>
+        </select>
       </div>
-      <button class="modal-close" onclick="closeModal('editModal')"><i data-lucide="x"></i></button>
-    </div>
-    <div class="modal-body">
-      <form id="editForm">
-        <input type="hidden" id="editId" />
-        <div class="form-group">
-          <label class="form-label">Full Name <span class="required">*</span></label>
-          <input type="text" class="form-input" id="editName" required />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Phone Number <span class="required">*</span></label>
-          <input type="tel" class="form-input" id="editPhone" required />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Email Address <span class="required">*</span></label>
-          <input type="email" class="form-input" id="editEmail" required />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Assigned Coverage State <span class="required">*</span></label>
-          <select class="form-select-input" id="editState" required>
-            <option value="">Select a state...</option>
-            <option value="Kaduna">Kaduna</option>
-            <option value="Kano">Kano</option>
-            <option value="FCT Abuja">FCT Abuja</option>
-            <option value="Lagos">Lagos</option>
-            <option value="Rivers">Rivers</option>
-            <option value="Plateau">Plateau</option>
-            <option value="Niger">Niger</option>
-            <option value="Oyo">Oyo</option>
-            <option value="Enugu">Enugu</option>
-            <option value="Borno">Borno</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Account Status</label>
-          <select class="form-select-input" id="editStatus">
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-      </form>
+
+      <div class="form-group">
+        <label class="form-label">Dispatch Notes (Optional)</label>
+        <textarea class="form-textarea" id="reassignNotes" placeholder="Additional instructions for the respondent..." style="min-height: 60px;"></textarea>
+      </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('editModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="handleEdit()">
-        <i data-lucide="check"></i>
-        Save Changes
+      <button class="btn btn-secondary" onclick="closeModal('reassignModal')">Cancel</button>
+      <button class="btn btn-primary" id="reassignSubmitBtn" onclick="submitReassign()">
+        <i data-lucide="user-check"></i>
+        Confirm Assignment
       </button>
     </div>
   </div>
 </div>
 
 <!-- ============ CONFIRM MODAL ============ -->
-<div class="modal-overlay confirm-modal" id="confirmModal">
-  <div class="modal">
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal" style="max-width: 420px;">
     <div class="modal-body" style="padding: 32px 24px;">
-      <div class="confirm-icon" id="confirmIcon"><i data-lucide="alert-triangle"></i></div>
-      <div class="confirm-text">
-        <h3 id="confirmTitle">Deactivate Respondent?</h3>
-        <p id="confirmMessage">Are you sure you want to deactivate this respondent? They will no longer be available for active emergency response assignments.</p>
+      <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--green-soft); color: var(--green); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+        <i data-lucide="check-circle" style="width: 28px; height: 28px;"></i>
       </div>
-      <div class="confirm-footer">
+      <div style="text-align: center;">
+        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px;" id="confirmTitle">Confirm Action</h3>
+        <p style="font-size: 13px; color: var(--text-soft); line-height: 1.6;" id="confirmMessage"></p>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 24px;">
         <button class="btn btn-secondary" onclick="closeModal('confirmModal')">Cancel</button>
-        <button class="btn" id="confirmAction" onclick="executeConfirm()">Deactivate</button>
+        <button class="btn btn-primary" id="confirmAction">Confirm</button>
       </div>
     </div>
   </div>
 </div>
+
+<!-- ============ DETAIL SLIDE-OVER PANEL ============ -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetailPanel()"></div>
+<aside class="detail-panel" id="detailPanel">
+  <div class="detail-header">
+    <div class="detail-header-left">
+      <div class="detail-title">
+        <h2 id="detailId">RL-0000</h2>
+        <span class="status-badge" id="detailStatusBadge">Pending</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-soft);">
+        <i data-lucide="alert-circle" id="detailTypeIcon" style="width: 14px; height: 14px;"></i>
+        <span id="detailType">Emergency</span>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn btn-sm btn-secondary" onclick="closeDetailPanel()">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="detail-body">
+    <!-- Action buttons -->
+    <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;" id="detailActionButtons">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Status Timeline -->
+    <div class="detail-section">
+      <div class="detail-section-header">
+        <div class="detail-section-title">
+          <i data-lucide="git-branch"></i>
+          Incident Audit Timeline
+        </div>
+      </div>
+      <div class="detail-section-body">
+        <div class="status-timeline" id="detailTimeline"></div>
+      </div>
+    </div>
+
+    <!-- Report Information -->
+    <div class="detail-section">
+      <div class="detail-section-header">
+        <div class="detail-section-title">
+          <i data-lucide="file-text"></i>
+          Incident Information
+        </div>
+      </div>
+      <div class="detail-section-body">
+        <div class="info-grid" id="detailInfoGrid"></div>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="detail-section">
+      <div class="detail-section-header">
+        <div class="detail-section-title">
+          <i data-lucide="align-left"></i>
+          Description
+        </div>
+      </div>
+      <div class="detail-section-body">
+        <div class="description-text" id="detailDescription"></div>
+      </div>
+    </div>
+
+    <!-- Assignment -->
+    <div class="detail-section">
+      <div class="detail-section-header">
+        <div class="detail-section-title">
+          <i data-lucide="user-check"></i>
+          Responder Assignment
+        </div>
+      </div>
+      <div class="detail-section-body">
+        <div class="info-grid" id="detailAssignmentGrid"></div>
+      </div>
+    </div>
+  </div>
+</aside>
 
 <!-- TOAST -->
 <div class="toast" id="toast">

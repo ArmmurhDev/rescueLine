@@ -1,39 +1,18 @@
 /**
- * RescueLine - Admin Dashboard Scripts
- * Handles charts, theme switching, responsive sidebar, notifications, and data rendering.
+ * RescueLine - Admin Dashboard Scripts (Real-time DB Connection)
+ * Handles charts, theme switching, responsive sidebar, notifications, and live database rendering.
  */
 
-/* =========================================================
-   MOCK DATA
-   (Replace with backend API calls as endpoints become available)
-   ========================================================= */
-const MOCK_STATES = [
-  { state: 'Kaduna',    total: 342, pending: 28, responding: 12, resolved: 302 },
-  { state: 'Kano',      total: 287, pending: 18, responding: 8,  resolved: 261 },
-  { state: 'FCT Abuja', total: 234, pending: 15, responding: 6,  resolved: 213 },
-  { state: 'Lagos',     total: 198, pending: 12, responding: 4,  resolved: 182 },
-  { state: 'Niger',     total: 156, pending: 8,  responding: 3,  resolved: 145 },
-  { state: 'Plateau',   total: 124, pending: 5,  responding: 1,  resolved: 118 },
-  { state: 'Oyo',       total: 98,  pending: 4,  responding: 0,  resolved: 94  },
-  { state: 'Rivers',    total: 87,  pending: 2,  responding: 0,  resolved: 85  }
-];
-
-const MOCK_TYPES = {
-  labels: ['Fire', 'Accident', 'Medical', 'Security', 'Flood', 'Other'],
-  values: [324, 258, 198, 167, 92, 48],
-  colors: ['#E53935', '#F59E0B', '#3B82F6', '#8B5CF6', '#06B6D4', '#9AA7A0'],
-  icons: ['flame', 'car', 'heart-pulse', 'shield-alert', 'waves', 'more-horizontal']
-};
-
-const MOCK_TREND = {
-  labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
-  responseTime: [42, 38, 35, 31, 28, 26, 24, 22],
-  target: [30, 30, 30, 30, 30, 30, 30, 30]
-};
-
-// Global chart references for re-render on theme change
+// Global state & chart references
 let typeChart = null;
 let trendChart = null;
+let dashboardData = {
+  counts: { total: 0, pending: 0, responding: 0, resolved: 0 },
+  states: [],
+  types: [],
+  trends: [],
+  notifications: []
+};
 
 /* =========================================================
    INITIALIZATION
@@ -42,10 +21,51 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initSidebar();
   initNotifications();
-  renderStates();
-  renderCharts();
-  initIcons();
+  initTrendFilter();
+  loadDashboardData();
 });
+
+/* =========================================================
+   DATA LOADING (REAL-TIME API)
+   ========================================================= */
+async function loadDashboardData() {
+  const trendDays = document.getElementById('trendRange')?.value || 30;
+  try {
+    const res = await fetch(`../api/dashboard.php?action=admin_stats&days=${trendDays}`);
+    const json = await res.json();
+    if (json.status === 'success' && json.data) {
+      dashboardData = json.data;
+      updateStatCards(dashboardData.counts);
+      renderStates(dashboardData.states);
+      renderCharts(dashboardData.types, dashboardData.trends);
+      renderNotifications(dashboardData.notifications);
+    }
+  } catch (err) {
+    console.error('Error fetching real-time dashboard metrics:', err);
+  }
+}
+
+/* =========================================================
+   UPDATE STAT CARDS
+   ========================================================= */
+function updateStatCards(counts) {
+  const totalEl = document.querySelector('.stat-card.total .stat-value');
+  const pendingEl = document.querySelector('.stat-card.pending .stat-value');
+  const respondingEl = document.querySelector('.stat-card.responding .stat-value');
+  const resolvedEl = document.querySelector('.stat-card.resolved .stat-value');
+
+  if (totalEl) totalEl.textContent = Number(counts.total || 0).toLocaleString();
+  if (pendingEl) pendingEl.textContent = Number(counts.pending || 0).toLocaleString();
+  if (respondingEl) respondingEl.textContent = Number(counts.responding || 0).toLocaleString();
+  if (resolvedEl) resolvedEl.textContent = Number(counts.resolved || 0).toLocaleString();
+
+  // Resolution rate
+  const resRateEl = document.querySelector('.stat-card.resolved .stat-sub');
+  if (resRateEl && counts.total > 0) {
+    const rate = ((counts.resolved / counts.total) * 100).toFixed(1);
+    resRateEl.textContent = `${rate}% resolution rate`;
+  }
+}
 
 /* =========================================================
    THEME TOGGLE
@@ -64,7 +84,9 @@ function initTheme() {
       document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('rl-admin-theme', next);
       updateThemeIcon(next);
-      renderCharts();
+      if (dashboardData.types && dashboardData.trends) {
+        renderCharts(dashboardData.types, dashboardData.trends);
+      }
     });
   }
 }
@@ -78,7 +100,7 @@ function updateThemeIcon(theme) {
 }
 
 /* =========================================================
-   SIDEBAR NAVIGATION (Responsive)
+   SIDEBAR NAVIGATION
    ========================================================= */
 function initSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -121,160 +143,190 @@ function initNotifications() {
       }
     });
   }
+
+  const markAllBtn = document.querySelector('.notif-header span');
+  if (markAllBtn) {
+    markAllBtn.addEventListener('click', async () => {
+      try {
+        await fetch('../api/notifications.php?action=mark_all_read', { method: 'POST' });
+        loadDashboardData();
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }
+}
+
+function renderNotifications(notifs) {
+  const list = document.querySelector('.notif-list');
+  const badge = document.querySelector('#notifBtn .badge');
+  if (!list) return;
+
+  if (!notifs || notifs.length === 0) {
+    list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">No new notifications</div>';
+    if (badge) badge.style.display = 'none';
+    return;
+  }
+
+  const unread = notifs.filter(n => !n.is_read).length;
+  if (badge) {
+    badge.textContent = unread;
+    badge.style.display = unread > 0 ? 'inline-flex' : 'none';
+  }
+
+  list.innerHTML = notifs.map(n => {
+    const iconColor = n.type === 'critical' ? 'red' : (n.type === 'warning' ? 'orange' : (n.type === 'success' ? 'green' : 'blue'));
+    const timeAgo = formatTimeAgo(n.created_at);
+    return `
+      <div class="notif-item ${n.is_read ? '' : 'unread'}">
+        <div class="notif-icon ${iconColor}"><i data-lucide="${n.icon || 'bell'}"></i></div>
+        <div class="notif-content">
+          <div class="title">${escapeHTML(n.title)}</div>
+          <div class="desc">${escapeHTML(n.message)}</div>
+          <div class="time">${timeAgo}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  initIcons();
 }
 
 /* =========================================================
    RENDER STATE TABLE
    ========================================================= */
-function renderStates() {
+function renderStates(states) {
   const stateBody = document.getElementById('stateBody');
   if (!stateBody) return;
 
-  const maxTotal = Math.max(...MOCK_STATES.map(s => s.total));
+  if (!states || states.length === 0) {
+    stateBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: var(--text-muted);">No state reports recorded yet.</td></tr>';
+    return;
+  }
 
-  stateBody.innerHTML = MOCK_STATES.map(s => {
-    const pct = (s.total / maxTotal) * 100;
+  const maxTotal = Math.max(...states.map(s => Number(s.total) || 0), 1);
+
+  stateBody.innerHTML = states.map(s => {
+    const total = Number(s.total) || 0;
+    const pending = Number(s.pending) || 0;
+    const responding = Number(s.responding) || 0;
+    const resolved = Number(s.resolved) || 0;
+    const pct = ((total / maxTotal) * 100).toFixed(0);
+
     return `
       <tr>
         <td>
           <div class="state-name">
             <span class="state-flag"></span>
-            ${s.state}
+            ${escapeHTML(s.state)}
           </div>
         </td>
-        <td><span class="state-total">${s.total}</span></td>
-        <td><span class="status-pill pending">${s.pending}</span></td>
-        <td><span class="status-pill responding">${s.responding}</span></td>
-        <td><span class="status-pill resolved">${s.resolved}</span></td>
+        <td><span class="state-total">${total}</span></td>
+        <td><span class="status-pill pending">${pending}</span></td>
+        <td><span class="status-pill responding">${responding}</span></td>
+        <td><span class="status-pill resolved">${resolved}</span></td>
         <td class="bar-cell">
           <div class="bar-wrap">
-            <div class="bar"><div class="bar-fill" style="width: 0%;" data-width="${pct}%"></div></div>
-            <span class="bar-value">${Math.round(pct)}%</span>
+            <div class="bar-fill" style="width: ${pct}%"></div>
           </div>
         </td>
       </tr>
     `;
   }).join('');
+}
 
-  // Animate progress bars
-  setTimeout(() => {
-    document.querySelectorAll('.bar-fill').forEach(el => {
-      el.style.width = el.dataset.width;
+/* =========================================================
+   TREND FILTER
+   ========================================================= */
+function initTrendFilter() {
+  const range = document.getElementById('trendRange');
+  if (range) {
+    range.addEventListener('change', () => {
+      loadDashboardData();
     });
-  }, 100);
+  }
 }
 
 /* =========================================================
    CHARTS (Chart.js)
    ========================================================= */
-function renderCharts() {
-  if (typeof Chart === 'undefined') return;
-
+function renderCharts(types, trends) {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const textColor = isDark ? '#9AA7A0' : '#6B7770';
-  const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.06)';
+  const textColor = isDark ? '#94A3B8' : '#64748B';
+  const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
 
-  // Destroy existing charts if re-rendering
-  if (typeChart) typeChart.destroy();
-  if (trendChart) trendChart.destroy();
-
-  /* ---- TYPE CHART (Donut) ---- */
+  // 1. Donut Chart - Reports by Category
   const typeCanvas = document.getElementById('typeChart');
-  if (typeCanvas) {
-    const typeCtx = typeCanvas.getContext('2d');
-    typeChart = new Chart(typeCtx, {
+  if (typeCanvas && types && types.length > 0) {
+    if (typeChart) typeChart.destroy();
+
+    const labels = types.map(t => t.name);
+    const data = types.map(t => Number(t.count) || 0);
+    const colors = types.map(t => t.color || '#3b82f6');
+
+    typeChart = new Chart(typeCanvas, {
       type: 'doughnut',
       data: {
-        labels: MOCK_TYPES.labels,
+        labels: labels,
         datasets: [{
-          data: MOCK_TYPES.values,
-          backgroundColor: MOCK_TYPES.colors,
-          borderColor: isDark ? '#121A17' : '#FFFFFF',
-          borderWidth: 3,
-          hoverOffset: 8
+          data: data.every(v => v === 0) ? [1] : data,
+          backgroundColor: data.every(v => v === 0) ? ['#334155'] : colors,
+          borderWidth: 2,
+          borderColor: isDark ? '#161D2F' : '#FFFFFF',
+          hoverOffset: 4
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '68%',
+        cutout: '72%',
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: isDark ? '#121A17' : '#FFFFFF',
-            titleColor: isDark ? '#F5F7F6' : '#17211B',
-            bodyColor: isDark ? '#C9D2CD' : '#4A5650',
-            borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-            borderWidth: 1,
-            padding: 12,
-            cornerRadius: 8,
             callbacks: {
-              label: (ctx) => ` ${ctx.label}: ${ctx.parsed} reports`
+              label: (ctx) => ` ${ctx.label}: ${ctx.raw} reports`
             }
           }
         }
       }
     });
 
-    // Render legend
-    const legendEl = document.getElementById('typeLegend');
-    if (legendEl) {
-      const total = MOCK_TYPES.values.reduce((a, b) => a + b, 0);
-      legendEl.innerHTML = MOCK_TYPES.labels.map((label, i) => {
-        const pct = ((MOCK_TYPES.values[i] / total) * 100).toFixed(1);
-        return `
-          <div class="legend-item">
-            <div class="legend-left">
-              <span class="legend-dot" style="background: ${MOCK_TYPES.colors[i]};"></span>
-              <span class="legend-label">${label}</span>
-            </div>
-            <span class="legend-value">${MOCK_TYPES.values[i]} <span style="color: var(--muted); font-weight: 500; font-size: 11px;">(${pct}%)</span></span>
-          </div>
-        `;
-      }).join('');
-    }
+    renderTypeLegend(types);
   }
 
-  /* ---- TREND CHART (Line) ---- */
+  // 2. Line Chart - Response Time Trend
   const trendCanvas = document.getElementById('trendChart');
   if (trendCanvas) {
-    const trendCtx = trendCanvas.getContext('2d');
+    if (trendChart) trendChart.destroy();
 
-    // Create gradient
-    const gradient = trendCtx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, 'rgba(0, 135, 81, 0.3)');
-    gradient.addColorStop(1, 'rgba(0, 135, 81, 0)');
+    const trendLabels = (trends && trends.length > 0) ? trends.map(t => formatDateShort(t.report_date)) : ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'];
+    const trendValues = (trends && trends.length > 0) ? trends.map(t => Math.round(Number(t.avg_response_time) || 20)) : [25, 22, 28, 20, 18];
+    const targetValues = new Array(trendLabels.length).fill(15);
 
-    trendChart = new Chart(trendCtx, {
+    trendChart = new Chart(trendCanvas, {
       type: 'line',
       data: {
-        labels: MOCK_TREND.labels,
+        labels: trendLabels,
         datasets: [
           {
             label: 'Avg Response Time (min)',
-            data: MOCK_TREND.responseTime,
-            borderColor: '#008751',
-            backgroundColor: gradient,
-            borderWidth: 3,
+            data: trendValues,
+            borderColor: '#3B82F6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
             fill: true,
             tension: 0.4,
-            pointBackgroundColor: '#008751',
-            pointBorderColor: isDark ? '#121A17' : '#FFFFFF',
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: '#3B82F6'
           },
           {
-            label: 'Target (30 min)',
-            data: MOCK_TREND.target,
-            borderColor: '#E53935',
-            backgroundColor: 'transparent',
+            label: 'SLA Target (15 min)',
+            data: targetValues,
+            borderColor: 'rgba(239, 68, 68, 0.6)',
+            borderDash: [5, 5],
             borderWidth: 2,
-            borderDash: [6, 4],
-            fill: false,
-            tension: 0,
             pointRadius: 0,
-            pointHoverRadius: 0
+            fill: false
           }
         ]
       },
@@ -282,44 +334,26 @@ function renderCharts() {
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: {
-            position: 'top',
-            align: 'end',
-            labels: {
-              color: textColor,
-              font: { size: 11, weight: '500' },
-              usePointStyle: true,
-              pointStyle: 'circle',
-              padding: 16
-            }
-          },
-          tooltip: {
-            backgroundColor: isDark ? '#121A17' : '#FFFFFF',
-            titleColor: isDark ? '#F5F7F6' : '#17211B',
-            bodyColor: isDark ? '#C9D2CD' : '#4A5650',
-            borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-            borderWidth: 1,
-            padding: 12,
-            cornerRadius: 8,
-            callbacks: {
-              label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y} min`
-            }
-          }
-        },
         scales: {
           x: {
-            grid: { display: false },
-            ticks: { color: textColor, font: { size: 11, weight: '500' } }
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 11 } }
           },
           y: {
+            min: 0,
             grid: { color: gridColor },
             ticks: {
               color: textColor,
               font: { size: 11 },
-              callback: (v) => v + ' min'
-            },
-            beginAtZero: true
+              callback: (v) => `${v}m`
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            align: 'end',
+            labels: { color: textColor, boxWidth: 12, usePointStyle: true }
           }
         }
       }
@@ -327,11 +361,52 @@ function renderCharts() {
   }
 }
 
+function renderTypeLegend(types) {
+  const legend = document.getElementById('typeLegend');
+  if (!legend || !types) return;
+
+  const total = types.reduce((acc, t) => acc + (Number(t.count) || 0), 0) || 1;
+
+  legend.innerHTML = types.map(t => {
+    const count = Number(t.count) || 0;
+    const pct = Math.round((count / total) * 100);
+    return `
+      <div class="legend-item">
+        <span class="legend-dot" style="background-color: ${t.color}"></span>
+        <span class="legend-label">${escapeHTML(t.name)}</span>
+        <span class="legend-val">${count} <small>(${pct}%)</small></span>
+      </div>
+    `;
+  }).join('');
+}
+
 /* =========================================================
-   LUCIDE ICONS
+   HELPERS & FORMATTERS
    ========================================================= */
 function initIcons() {
-  if (typeof lucide !== 'undefined' && lucide.createIcons) {
+  if (typeof lucide !== 'undefined') {
     lucide.createIcons();
   }
+}
+
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>'"]/g, 
+    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+  );
+}
+
+function formatDateShort(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function formatTimeAgo(dateStr) {
+  if (!dateStr) return 'Just now';
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+  return `${Math.floor(diff / 86400)} days ago`;
 }

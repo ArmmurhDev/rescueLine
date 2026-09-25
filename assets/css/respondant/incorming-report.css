@@ -460,18 +460,44 @@ button {
   top: 0;
 }
 
-.reports-table th input[type="checkbox"],
-.reports-table td input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: var(--green);
-}
-
 .reports-table td {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
+}
+
+.reports-table th:nth-child(1),
+.reports-table td:nth-child(1) {
+  width: 120px;
+  white-space: nowrap;
+}
+
+.reports-table th:nth-child(2),
+.reports-table td:nth-child(2) {
+  min-width: 150px;
+}
+
+.reports-table th:nth-child(3),
+.reports-table td:nth-child(3) {
+  min-width: 180px;
+}
+
+.reports-table th:nth-child(4),
+.reports-table td:nth-child(4) {
+  width: 140px;
+  white-space: nowrap;
+}
+
+.reports-table th:nth-child(5),
+.reports-table td:nth-child(5) {
+  width: 110px;
+  white-space: nowrap;
+}
+
+.reports-table th:nth-child(6),
+.reports-table td:nth-child(6) {
+  width: 160px;
+  white-space: nowrap;
 }
 
 .reports-table tr:last-child td { 
@@ -547,6 +573,17 @@ button {
   font-size: 12px; 
 }
 
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.btn-sm i {
+  width: 14px;
+  height: 14px;
+}
+
 .priority-badge {
   display: inline-flex;
   align-items: center;
@@ -583,12 +620,23 @@ button {
   background: var(--orange); 
 }
 
-.priority-badge.normal { 
+.priority-badge.medium { 
+  background: var(--orange-soft); 
+  color: var(--orange); 
+}
+
+.priority-badge.medium::before { 
+  background: var(--orange); 
+}
+
+.priority-badge.normal,
+.priority-badge.low { 
   background: var(--green-soft); 
   color: var(--green); 
 }
 
-.priority-badge.normal::before { 
+.priority-badge.normal::before,
+.priority-badge.low::before { 
   background: var(--green); 
 }
 

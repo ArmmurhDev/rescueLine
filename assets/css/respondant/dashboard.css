@@ -552,6 +552,7 @@ ul {
   margin-bottom: 22px;
   position: relative;
   overflow: hidden;
+  transition: border-color 0.3s ease, background 0.3s ease;
 }
 
 .welcome-card::before {
@@ -562,6 +563,11 @@ ul {
   bottom: 0;
   width: 4px;
   background: var(--green);
+  transition: background 0.3s ease;
+}
+
+.welcome-card.offline::before {
+  background: var(--muted);
 }
 
 .welcome-left { 
@@ -584,6 +590,11 @@ ul {
   font-weight: 700;
   font-size: 18px;
   flex-shrink: 0;
+  transition: background 0.3s ease;
+}
+
+.welcome-avatar.offline {
+  background: linear-gradient(135deg, #64748b, #475569);
 }
 
 .welcome-info h3 {
@@ -612,6 +623,11 @@ ul {
   gap: 6px;
   color: var(--green);
   font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.status-indicator.offline {
+  color: var(--muted);
 }
 
 .status-dot {
@@ -621,6 +637,13 @@ ul {
   background: var(--green);
   box-shadow: 0 0 0 3px var(--green-soft);
   animation: pulse 2s infinite;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.status-dot.offline {
+  background: var(--muted);
+  box-shadow: 0 0 0 3px rgba(154, 167, 160, 0.2);
+  animation: none;
 }
 
 @keyframes pulse {
@@ -644,6 +667,11 @@ ul {
   white-space: nowrap;
 }
 
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .btn-primary {
   background: var(--green);
   color: white;
@@ -652,6 +680,18 @@ ul {
 .btn-primary:hover { 
   background: var(--green-hover); 
   transform: translateY(-1px); 
+}
+
+.btn-success {
+  background: var(--green-soft);
+  color: var(--green);
+  border: 1px solid rgba(0, 135, 81, 0.3);
+}
+
+.btn-success:hover {
+  background: var(--green);
+  color: white;
+  transform: translateY(-1px);
 }
 
 .btn-danger {
@@ -663,6 +703,7 @@ ul {
 .btn-danger:hover { 
   background: var(--red); 
   color: white; 
+  transform: translateY(-1px);
 }
 
 .btn-ghost {

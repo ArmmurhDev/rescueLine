@@ -1,278 +1,98 @@
 /**
- * RescueLine - Admin Reports & Respondents Scripts
- * Handles table rendering, filtering, pagination, add/edit/deactivate modals, and notifications.
+ * RescueLine - Admin Emergency Reports Management Scripts
+ * Handles real-time MySQL database report queries, cascading filters,
+ * slide-over detail panel with live timeline, responder reassignment, and status transitions.
  */
 
-/* =========================================================
-   MOCK DATA
-   ========================================================= */
-let respondents = [
-  { id: 1,  name: 'Musa Ibrahim',     phone: '08031234567', email: 'musa.ibrahim@rescueline.ng',   state: 'Kaduna',    status: 'active' },
-  { id: 2,  name: 'Amina Bello',      phone: '08123456789', email: 'amina.bello@rescueline.ng',    state: 'Kaduna',    status: 'active' },
-  { id: 3,  name: 'Yusuf Danladi',    phone: '07056789012', email: 'yusuf.danladi@rescueline.ng',  state: 'Kano',      status: 'active' },
-  { id: 4,  name: 'Fatima Ahmed',     phone: '09098765432', email: 'fatima.ahmed@rescueline.ng',   state: 'FCT Abuja', status: 'active' },
-  { id: 5,  name: 'Sani Mohammed',    phone: '08065432109', email: 'sani.mohammed@rescueline.ng',  state: 'Kaduna',    status: 'active' },
-  { id: 6,  name: 'Chinedu Okafor',   phone: '08134567890', email: 'chinedu.okafor@rescueline.ng', state: 'Lagos',     status: 'active' },
-  { id: 7,  name: 'Aisha Okonkwo',    phone: '07087654321', email: 'aisha.okonkwo@rescueline.ng',  state: 'FCT Abuja', status: 'active' },
-  { id: 8,  name: 'Emeka Nwosu',      phone: '09023456781', email: 'emeka.nwosu@rescueline.ng',    state: 'Rivers',    status: 'active' },
-  { id: 9,  name: 'Halima Yusuf',     phone: '08056781234', email: 'halima.yusuf@rescueline.ng',   state: 'Kano',      status: 'inactive' },
-  { id: 10, name: 'Tunde Adeyemi',    phone: '08145678901', email: 'tunde.adeyemi@rescueline.ng',  state: 'Oyo',       status: 'active' },
-  { id: 11, name: 'Zainab Aliyu',     phone: '07067890123', email: 'zainab.aliyu@rescueline.ng',   state: 'Plateau',   status: 'active' },
-  { id: 12, name: 'Ibrahim Musa',     phone: '09034567890', email: 'ibrahim.musa@rescueline.ng',   state: 'Niger',     status: 'active' },
-  { id: 13, name: 'Ngozi Eze',        phone: '08078901234', email: 'ngozi.eze@rescueline.ng',      state: 'Enugu',     status: 'active' },
-  { id: 14, name: 'Abubakar Sule',    phone: '08189012345', email: 'abubakar.sule@rescueline.ng',  state: 'Borno',     status: 'active' },
-  { id: 15, name: 'Grace Obi',        phone: '07090123456', email: 'grace.obi@rescueline.ng',      state: 'Lagos',     status: 'inactive' },
-  { id: 16, name: 'Mohammed Bello',   phone: '09045678901', email: 'mohammed.bello@rescueline.ng', state: 'Kaduna',    status: 'active' },
-  { id: 17, name: 'Blessing Obi',     phone: '08012345678', email: 'blessing.obi@rescueline.ng',   state: 'Rivers',    status: 'active' },
-  { id: 18, name: 'Aliyu Garba',      phone: '08156789012', email: 'aliyu.garba@rescueline.ng',    state: 'Kano',      status: 'inactive' },
-];
+// Nigerian States and LGAs structure
+const STATES_LGA = {
+  'Kaduna': ['Kaduna South', 'Kaduna North', 'Zaria', 'Chikun', 'Kaura', 'Igabi', 'Makarfi', 'Sanga'],
+  'Kano': ['Kano Municipal', 'Fagge', 'Gwale', 'Tarauni', 'Nassarawa', 'Dala', 'Ungogo'],
+  'FCT Abuja': ['Abaji', 'Abuja Municipal', 'Bwari', 'Gwagwalada', 'Kuje', 'Kwali'],
+  'Lagos': ['Ikeja', 'Etiosa', 'Lagos Mainland', 'Surulere', 'Apapa', 'Kosofe'],
+  'Rivers': ['Port Harcourt', 'Obio-Akpor', 'Eleme', 'Oyigbo', 'Tai'],
+  'Plateau': ['Jos North', 'Jos South', 'Jos East', 'Barkin Ladi', 'Bokkos'],
+  'Niger': ['Minna', 'Bida', 'Suleja', 'Chanchaga', 'Paikoro'],
+  'Oyo': ['Ibadan North', 'Ibadan South', 'Ibadan South-West', 'Egbeda', 'Oluyole'],
+  'Enugu': ['Enugu North', 'Enugu South', 'Enugu East', 'Nkanu', 'Udi'],
+  'Borno': ['Maiduguri', 'Jere', 'Bama', 'Gubio', 'Monguno']
+};
 
-const PER_PAGE = 10;
+let reports = [];
+let availableRespondents = [];
+let filteredReports = [];
 let currentPage = 1;
-let filteredData = [...respondents];
-let confirmCallback = null;
+let perPage = 20;
+let currentDetailReport = null;
+let currentReassignReportId = null;
+let activeStatusFilter = '';
+
+/* =========================================================
+   INITIALIZATION
+   ========================================================= */
+document.addEventListener('DOMContentLoaded', () => {
+  initStateDropdown();
+  initEventListeners();
+  initModalListeners();
+  loadReportsData();
+});
 
 /* =========================================================
    HELPERS
    ========================================================= */
-function getInitials(name) {
-  if (!name) return '??';
-  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-}
-
-function maskPhone(phone) {
-  if (phone && phone.length >= 7) {
-    return phone.slice(0, 4) + '***' + phone.slice(-3);
-  }
-  return phone || '';
-}
-
 function capitalize(s) {
   if (!s) return '';
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/* =========================================================
-   FILTERING
-   ========================================================= */
-function applyFilters() {
-  const searchInput = document.getElementById('searchInput');
-  const stateFilter = document.getElementById('stateFilter');
-  const statusFilter = document.getElementById('statusFilter');
-  const clearFiltersBtn = document.getElementById('clearFilters');
-
-  const q = searchInput ? searchInput.value.toLowerCase().trim() : '';
-  const s = stateFilter ? stateFilter.value : '';
-  const st = statusFilter ? statusFilter.value : '';
-
-  filteredData = respondents.filter(r => {
-    const matchQ = !q || r.name.toLowerCase().includes(q) || r.phone.includes(q) || r.email.toLowerCase().includes(q);
-    const matchS = !s || r.state === s;
-    const matchSt = !st || r.status === st;
-    return matchQ && matchS && matchSt;
+function formatDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('en-GB', { 
+    day: '2-digit', 
+    month: 'short', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   });
-
-  currentPage = 1;
-  renderTable();
-  updateStats();
-
-  const hasFilters = Boolean(q || s || st);
-  if (clearFiltersBtn) {
-    clearFiltersBtn.classList.toggle('visible', hasFilters);
-  }
 }
 
-function clearAllFilters() {
-  const searchInput = document.getElementById('searchInput');
-  const stateFilter = document.getElementById('stateFilter');
-  const statusFilter = document.getElementById('statusFilter');
-
-  if (searchInput) searchInput.value = '';
-  if (stateFilter) stateFilter.value = '';
-  if (statusFilter) statusFilter.value = '';
-  applyFilters();
+function formatShortDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-/* =========================================================
-   RENDER TABLE & CARDS
-   ========================================================= */
-function renderTable() {
-  const tableBody = document.getElementById('tableBody');
-  const respCards = document.getElementById('respCards');
-  const resultCount = document.getElementById('resultCount');
-  const paginationBar = document.getElementById('paginationBar');
-
-  if (!tableBody && !respCards) return;
-
-  const start = (currentPage - 1) * PER_PAGE;
-  const end = start + PER_PAGE;
-  const pageData = filteredData.slice(start, end);
-
-  if (resultCount) {
-    resultCount.textContent = filteredData.length;
+function maskPhone(phone) {
+  if (!phone) return '—';
+  const clean = String(phone).trim();
+  if (clean.length >= 7) {
+    return clean.slice(0, 4) + '*****' + clean.slice(-3);
   }
-
-  if (pageData.length === 0) {
-    const emptyHtml = `
-      <div class="empty-state">
-        <i data-lucide="users"></i>
-        <h3>No respondents found</h3>
-        <p>Try changing your search or filter, or add a new respondent.</p>
-        <button class="btn btn-primary" onclick="openAddModal()"><i data-lucide="plus"></i> Add Respondent</button>
-      </div>`;
-
-    if (tableBody) {
-      tableBody.innerHTML = `<tr><td colspan="6">${emptyHtml}</td></tr>`;
-    }
-    if (respCards) {
-      respCards.innerHTML = emptyHtml;
-    }
-    if (paginationBar) {
-      paginationBar.style.display = 'none';
-    }
-    initLucideIcons();
-    return;
-  }
-
-  if (paginationBar) {
-    paginationBar.style.display = 'flex';
-  }
-
-  // Desktop Table rows
-  if (tableBody) {
-    tableBody.innerHTML = pageData.map(r => `
-      <tr class="${r.status === 'inactive' ? 'inactive-row' : ''}">
-        <td>
-          <div class="resp-cell">
-            <div class="resp-avatar">${getInitials(r.name)}</div>
-            <div>
-              <div class="resp-name">${r.name}</div>
-              <div class="resp-role">Respondent</div>
-            </div>
-          </div>
-        </td>
-        <td><span class="cell-text">${maskPhone(r.phone)}</span></td>
-        <td><span class="cell-muted">${r.email}</span></td>
-        <td><span class="cell-text">${r.state}</span></td>
-        <td><span class="status-badge ${r.status}">${capitalize(r.status)}</span></td>
-        <td>
-          <div class="action-group">
-            <button class="act-btn act-btn-view" title="View" onclick="viewRespondent(${r.id})"><i data-lucide="eye"></i></button>
-            <button class="act-btn act-btn-edit" title="Edit" onclick="openEditModal(${r.id})"><i data-lucide="pencil"></i></button>
-            ${r.status === 'active'
-              ? `<button class="act-btn act-btn-deactivate" title="Deactivate" onclick="confirmDeactivate(${r.id})"><i data-lucide="user-x"></i></button>`
-              : `<button class="act-btn act-btn-activate" title="Activate" onclick="confirmActivate(${r.id})"><i data-lucide="user-check"></i></button>`
-            }
-          </div>
-        </td>
-      </tr>
-    `).join('');
-  }
-
-  // Mobile Cards
-  if (respCards) {
-    respCards.innerHTML = pageData.map(r => `
-      <div class="resp-card-item" style="${r.status === 'inactive' ? 'opacity: 0.6;' : ''}">
-        <div class="resp-card-top">
-          <div class="resp-cell">
-            <div class="resp-avatar">${getInitials(r.name)}</div>
-            <div>
-              <div class="resp-name">${r.name}</div>
-              <div class="resp-role">Respondent</div>
-            </div>
-          </div>
-          <span class="status-badge ${r.status}">${capitalize(r.status)}</span>
-        </div>
-        <div class="resp-card-body">
-          <div class="resp-card-field">
-            <div class="label">Phone</div>
-            <div class="value">${maskPhone(r.phone)}</div>
-          </div>
-          <div class="resp-card-field">
-            <div class="label">Email</div>
-            <div class="value" style="font-size:12px; word-break:break-all;">${r.email}</div>
-          </div>
-          <div class="resp-card-field">
-            <div class="label">Coverage State</div>
-            <div class="value">${r.state}</div>
-          </div>
-        </div>
-        <div class="resp-card-actions">
-          <button class="act-btn act-btn-view" onclick="viewRespondent(${r.id})"><i data-lucide="eye"></i> View</button>
-          <button class="act-btn act-btn-edit" onclick="openEditModal(${r.id})"><i data-lucide="pencil"></i> Edit</button>
-          ${r.status === 'active'
-            ? `<button class="act-btn act-btn-deactivate" onclick="confirmDeactivate(${r.id})"><i data-lucide="user-x"></i> Deactivate</button>`
-            : `<button class="act-btn act-btn-activate" onclick="confirmActivate(${r.id})"><i data-lucide="user-check"></i> Activate</button>`
-          }
-        </div>
-      </div>
-    `).join('');
-  }
-
-  renderPagination();
-  initLucideIcons();
+  return clean;
 }
 
-/* =========================================================
-   PAGINATION
-   ========================================================= */
-function renderPagination() {
-  const paginationInfo = document.getElementById('paginationInfo');
-  const paginationControls = document.getElementById('paginationControls');
-  if (!paginationInfo || !paginationControls) return;
-
-  const totalPages = Math.ceil(filteredData.length / PER_PAGE);
-  const start = (currentPage - 1) * PER_PAGE + 1;
-  const end = Math.min(currentPage * PER_PAGE, filteredData.length);
-
-  paginationInfo.textContent = `Showing ${start}–${end} of ${filteredData.length} respondents`;
-
-  let html = `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="goPage(${currentPage - 1})"><i data-lucide="chevron-left"></i></button>`;
-
-  for (let i = 1; i <= totalPages; i++) {
-    if (totalPages > 7 && i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1) {
-      if (i === 3 || i === totalPages - 2) html += `<button class="page-btn" disabled>...</button>`;
-      continue;
-    }
-    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
-  }
-
-  html += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="goPage(${currentPage + 1})"><i data-lucide="chevron-right"></i></button>`;
-  paginationControls.innerHTML = html;
-  initLucideIcons();
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>'"]/g, 
+    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+  );
 }
 
-function goPage(p) {
-  const totalPages = Math.ceil(filteredData.length / PER_PAGE);
-  if (p < 1 || p > totalPages) return;
-  currentPage = p;
-  renderTable();
-  const tableCard = document.querySelector('.table-card');
-  if (tableCard) {
-    tableCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+function getTypeIcon(type) {
+  const t = String(type || '').toLowerCase();
+  if (t.includes('fire')) return 'flame';
+  if (t.includes('accident') || t.includes('crash')) return 'car';
+  if (t.includes('medical') || t.includes('health')) return 'heart-pulse';
+  if (t.includes('flood') || t.includes('water')) return 'droplets';
+  if (t.includes('security') || t.includes('robbery') || t.includes('crime')) return 'shield-alert';
+  return 'alert-circle';
 }
 
-/* =========================================================
-   STATS UPDATE
-   ========================================================= */
-function updateStats() {
-  const total = respondents.length;
-  const active = respondents.filter(r => r.status === 'active').length;
-  const inactive = total - active;
-
-  const statTotal = document.getElementById('statTotal');
-  const statActive = document.getElementById('statActive');
-  const statInactive = document.getElementById('statInactive');
-
-  if (statTotal) statTotal.textContent = total;
-  if (statActive) statActive.textContent = active;
-  if (statInactive) statInactive.textContent = inactive;
+function getInitials(name) {
+  if (!name) return '??';
+  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
-/* =========================================================
-   MODAL CONTROLS
-   ========================================================= */
 function openModal(id) {
   const modal = document.getElementById(id);
   if (modal) modal.classList.add('active');
@@ -283,261 +103,685 @@ function closeModal(id) {
   if (modal) modal.classList.remove('active');
 }
 
-/* =========================================================
-   ADD RESPONDENT
-   ========================================================= */
-function openAddModal() {
-  const form = document.getElementById('addForm');
-  if (form) form.reset();
-  document.querySelectorAll('#addModal .form-error').forEach(e => e.classList.remove('visible'));
-  document.querySelectorAll('#addModal .form-input, #addModal .form-select-input').forEach(e => e.classList.remove('error'));
-  openModal('addModal');
-}
-
-function handleAdd(e) {
-  if (e && e.preventDefault) e.preventDefault();
-
-  const nameInput = document.getElementById('addName');
-  const phoneInput = document.getElementById('addPhone');
-  const emailInput = document.getElementById('addEmail');
-  const passwordInput = document.getElementById('addPassword');
-  const stateInput = document.getElementById('addState');
-
-  const name = nameInput ? nameInput.value.trim() : '';
-  const phone = phoneInput ? phoneInput.value.trim() : '';
-  const email = emailInput ? emailInput.value.trim() : '';
-  const password = passwordInput ? passwordInput.value : '';
-  const state = stateInput ? stateInput.value : '';
-
-  let valid = true;
-
-  if (!name) { showFieldError('addName', 'addNameError'); valid = false; } else { clearFieldError('addName', 'addNameError'); }
-  if (!phone || phone.length < 10) { showFieldError('addPhone', 'addPhoneError'); valid = false; } else { clearFieldError('addPhone', 'addPhoneError'); }
-  if (!email || !email.includes('@')) { showFieldError('addEmail', 'addEmailError'); valid = false; } else { clearFieldError('addEmail', 'addEmailError'); }
-  if (!password || password.length < 8) { showFieldError('addPassword', 'addPasswordError'); valid = false; } else { clearFieldError('addPassword', 'addPasswordError'); }
-  if (!state) { showFieldError('addState', 'addStateError'); valid = false; } else { clearFieldError('addState', 'addStateError'); }
-
-  if (!valid) return false;
-
-  const newId = respondents.length > 0 ? Math.max(...respondents.map(r => r.id)) + 1 : 1;
-  respondents.unshift({ id: newId, name, phone, email, state, status: 'active' });
-
-  closeModal('addModal');
-  applyFilters();
-  showToast(`${name} added successfully`);
-  return false;
-}
-
-function showFieldError(inputId, errorId) {
-  const input = document.getElementById(inputId);
-  const error = document.getElementById(errorId);
-  if (input) input.classList.add('error');
-  if (error) error.classList.add('visible');
-}
-
-function clearFieldError(inputId, errorId) {
-  const input = document.getElementById(inputId);
-  const error = document.getElementById(errorId);
-  if (input) input.classList.remove('error');
-  if (error) error.classList.remove('visible');
-}
-
-/* =========================================================
-   EDIT RESPONDENT
-   ========================================================= */
-function openEditModal(id) {
-  const r = respondents.find(x => x.id === id);
-  if (!r) return;
-
-  const editId = document.getElementById('editId');
-  const editName = document.getElementById('editName');
-  const editPhone = document.getElementById('editPhone');
-  const editEmail = document.getElementById('editEmail');
-  const editState = document.getElementById('editState');
-  const editStatus = document.getElementById('editStatus');
-
-  if (editId) editId.value = r.id;
-  if (editName) editName.value = r.name;
-  if (editPhone) editPhone.value = r.phone;
-  if (editEmail) editEmail.value = r.email;
-  if (editState) editState.value = r.state;
-  if (editStatus) editStatus.value = r.status;
-
-  openModal('editModal');
-}
-
-function handleEdit() {
-  const editId = document.getElementById('editId');
-  const editName = document.getElementById('editName');
-  const editPhone = document.getElementById('editPhone');
-  const editEmail = document.getElementById('editEmail');
-  const editState = document.getElementById('editState');
-  const editStatus = document.getElementById('editStatus');
-
-  const id = editId ? parseInt(editId.value) : 0;
-  const name = editName ? editName.value.trim() : '';
-  const phone = editPhone ? editPhone.value.trim() : '';
-  const email = editEmail ? editEmail.value.trim() : '';
-  const state = editState ? editState.value : '';
-  const status = editStatus ? editStatus.value : 'active';
-
-  if (!name || !phone || !email || !state) {
-    showToast('Please fill all required fields', true);
-    return;
-  }
-
-  const idx = respondents.findIndex(r => r.id === id);
-  if (idx !== -1) {
-    respondents[idx] = { ...respondents[idx], name, phone, email, state, status };
-  }
-
-  closeModal('editModal');
-  applyFilters();
-  showToast(`${name} updated successfully`);
-}
-
-/* =========================================================
-   DEACTIVATE / ACTIVATE
-   ========================================================= */
-function confirmDeactivate(id) {
-  const r = respondents.find(x => x.id === id);
-  if (!r) return;
-
-  const confirmIcon = document.getElementById('confirmIcon');
-  const confirmTitle = document.getElementById('confirmTitle');
-  const confirmMessage = document.getElementById('confirmMessage');
-  const actionBtn = document.getElementById('confirmAction');
-
-  if (confirmIcon) {
-    confirmIcon.className = 'confirm-icon danger';
-    confirmIcon.innerHTML = '<i data-lucide="alert-triangle"></i>';
-  }
-  if (confirmTitle) confirmTitle.textContent = 'Deactivate Respondent?';
-  if (confirmMessage) confirmMessage.textContent = `Are you sure you want to deactivate ${r.name}? They will no longer be available for active emergency response assignments.`;
-  if (actionBtn) {
-    actionBtn.textContent = 'Deactivate';
-    actionBtn.className = 'btn btn-danger';
-  }
-
-  confirmCallback = () => {
-    r.status = 'inactive';
-    applyFilters();
-    showToast(`${r.name} deactivated`);
-  };
-
-  openModal('confirmModal');
-  initLucideIcons();
-}
-
-function confirmActivate(id) {
-  const r = respondents.find(x => x.id === id);
-  if (!r) return;
-
-  const confirmIcon = document.getElementById('confirmIcon');
-  const confirmTitle = document.getElementById('confirmTitle');
-  const confirmMessage = document.getElementById('confirmMessage');
-  const actionBtn = document.getElementById('confirmAction');
-
-  if (confirmIcon) {
-    confirmIcon.className = 'confirm-icon success';
-    confirmIcon.innerHTML = '<i data-lucide="user-check"></i>';
-  }
-  if (confirmTitle) confirmTitle.textContent = 'Activate Respondent?';
-  if (confirmMessage) confirmMessage.textContent = `Reactivate ${r.name}? They will be available for emergency response assignments again.`;
-  if (actionBtn) {
-    actionBtn.textContent = 'Activate';
-    actionBtn.className = 'btn btn-primary';
-  }
-
-  confirmCallback = () => {
-    r.status = 'active';
-    applyFilters();
-    showToast(`${r.name} activated`);
-  };
-
-  openModal('confirmModal');
-  initLucideIcons();
-}
-
-function executeConfirm() {
-  if (confirmCallback) confirmCallback();
-  closeModal('confirmModal');
-  confirmCallback = null;
-}
-
-/* =========================================================
-   VIEW
-   ========================================================= */
-function viewRespondent(id) {
-  const r = respondents.find(x => x.id === id);
-  if (r) {
-    showToast(`Viewing ${r.name}'s profile`);
-  }
-}
-
-/* =========================================================
-   PASSWORD TOGGLE
-   ========================================================= */
-function togglePassword(inputId, btn) {
-  const input = document.getElementById(inputId);
-  if (!input) return;
-  const isPassword = input.type === 'password';
-  input.type = isPassword ? 'text' : 'password';
-  const icon = btn.querySelector('i');
-  if (icon) {
-    icon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
-    initLucideIcons();
-  }
-}
-
-/* =========================================================
-   TOAST
-   ========================================================= */
-function showToast(message, isError = false) {
+function showToast(message, type = 'success') {
   const toast = document.getElementById('toast');
-  const toastMessage = document.getElementById('toastMessage');
-  if (!toast || !toastMessage) return;
-
-  toastMessage.textContent = message;
-  toast.className = 'toast show' + (isError ? ' error' : '');
+  const toastMsg = document.getElementById('toastMessage');
+  if (!toast || !toastMsg) return;
+  toastMsg.textContent = message;
+  toast.className = 'toast show' + (type === 'error' ? ' error' : '');
   setTimeout(() => {
     toast.classList.remove('show');
   }, 3000);
 }
 
-function initLucideIcons() {
-  if (typeof lucide !== 'undefined' && lucide.createIcons) {
-    lucide.createIcons();
-  }
-}
-
-/* =========================================================
-   DOM READY INITIALIZATION
-   ========================================================= */
-document.addEventListener('DOMContentLoaded', () => {
-  const searchInput = document.getElementById('searchInput');
-  const stateFilter = document.getElementById('stateFilter');
-  const statusFilter = document.getElementById('statusFilter');
-
-  if (searchInput) searchInput.addEventListener('input', applyFilters);
-  if (stateFilter) stateFilter.addEventListener('change', applyFilters);
-  if (statusFilter) statusFilter.addEventListener('change', applyFilters);
-
-  // Overlay clicks
+function initModalListeners() {
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) overlay.classList.remove('active');
     });
   });
 
-  // Escape key closes modals
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+      closeDetailPanel();
     }
   });
+}
 
+/* =========================================================
+   DATABASE DATA LOADING
+   ========================================================= */
+async function loadReportsData() {
+  const searchInput = document.getElementById('searchInput');
+  const stateFilter = document.getElementById('stateFilter');
+  const lgaFilter = document.getElementById('lgaFilter');
+  const typeFilter = document.getElementById('typeFilter');
+  const statusFilter = document.getElementById('statusFilter');
+
+  const q = searchInput ? encodeURIComponent(searchInput.value.trim()) : '';
+  const s = stateFilter ? encodeURIComponent(stateFilter.value) : '';
+  const l = lgaFilter ? encodeURIComponent(lgaFilter.value) : '';
+  const t = typeFilter ? encodeURIComponent(typeFilter.value) : '';
+  const st = encodeURIComponent(activeStatusFilter || (statusFilter ? statusFilter.value : ''));
+
+  try {
+    const res = await fetch(`../api/reports.php?action=list&search=${q}&state=${s}&lga=${l}&type=${t}&status=${st}`);
+    const json = await res.json();
+    if (json.status === 'success' && json.data) {
+      reports = (json.data.reports || []).map(r => normalizeReport(r));
+      availableRespondents = json.data.respondents || [];
+      filteredReports = [...reports];
+      renderTable();
+      updateStats(json.data.stats);
+    }
+  } catch (err) {
+    console.error('Error fetching reports:', err);
+    showToast('Failed to load emergency reports from server.', 'error');
+  }
+}
+
+function normalizeReport(r) {
+  return {
+    dbId: r.id,
+    id: r.reportCode || ('RL-' + String(r.id).padStart(4, '0')),
+    type: r.type || r.category_name || 'Emergency',
+    state: r.state || '',
+    lga: r.lga || '',
+    location: r.landmark || `${r.lga}, ${r.state}`,
+    reporter: r.reporter || r.reporter_phone || 'Citizen',
+    reporterName: r.reporter_name || 'Citizen',
+    respondent: r.assignedRespondent ? {
+      id: r.assignedRespondentId,
+      name: r.assignedRespondent,
+      phone: r.respondentPhone
+    } : null,
+    status: r.status || 'pending',
+    priority: r.priority || 'medium',
+    dateReceived: r.receivedAt ? new Date(r.receivedAt) : new Date(),
+    dateAssigned: r.assigned_at ? new Date(r.assigned_at) : null,
+    dateResponded: r.responding_at ? new Date(r.responding_at) : null,
+    dateResolved: r.resolved_at ? new Date(r.resolved_at) : null,
+    description: r.description || '',
+    source: r.source || 'web'
+  };
+}
+
+/* =========================================================
+   STATE & LGA DROPDOWNS
+   ========================================================= */
+function initStateDropdown() {
+  const stateFilter = document.getElementById('stateFilter');
+  if (!stateFilter) return;
+
+  stateFilter.innerHTML = '<option value="">All States</option>';
+  Object.keys(STATES_LGA).forEach(state => {
+    const opt = document.createElement('option');
+    opt.value = state;
+    opt.textContent = state;
+    stateFilter.appendChild(opt);
+  });
+}
+
+function initEventListeners() {
+  const filterToggle = document.getElementById('filterToggle');
+  const advFilters = document.getElementById('advancedFilters');
+  if (filterToggle && advFilters) {
+    filterToggle.addEventListener('click', () => {
+      advFilters.classList.toggle('open');
+      filterToggle.classList.toggle('active');
+    });
+  }
+
+  const stateFilter = document.getElementById('stateFilter');
+  const lgaFilter = document.getElementById('lgaFilter');
+  if (stateFilter && lgaFilter) {
+    stateFilter.addEventListener('change', () => {
+      const state = stateFilter.value;
+      if (state && STATES_LGA[state]) {
+        lgaFilter.innerHTML = '<option value="">All LGAs</option>';
+        STATES_LGA[state].forEach(lga => {
+          const opt = document.createElement('option');
+          opt.value = lga;
+          opt.textContent = lga;
+          lgaFilter.appendChild(opt);
+        });
+        lgaFilter.disabled = false;
+      } else {
+        lgaFilter.innerHTML = '<option value="">Select state first</option>';
+        lgaFilter.disabled = true;
+      }
+      applyFilters();
+    });
+  }
+
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    let debounce;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(applyFilters, 300);
+    });
+  }
+
+  const typeFilter = document.getElementById('typeFilter');
+  if (typeFilter) typeFilter.addEventListener('change', applyFilters);
+
+  if (lgaFilter) lgaFilter.addEventListener('change', applyFilters);
+
+  const statusFilter = document.getElementById('statusFilter');
+  if (statusFilter) {
+    statusFilter.addEventListener('change', () => {
+      activeStatusFilter = statusFilter.value;
+      applyFilters();
+    });
+  }
+
+  const perPageSel = document.getElementById('perPage');
+  if (perPageSel) {
+    perPageSel.addEventListener('change', () => {
+      perPage = parseInt(perPageSel.value, 10) || 20;
+      currentPage = 1;
+      renderTable();
+    });
+  }
+}
+
+function filterByStatus(status) {
+  activeStatusFilter = status;
+  const statusFilter = document.getElementById('statusFilter');
+  if (statusFilter) statusFilter.value = status;
+
+  document.querySelectorAll('.stat-mini').forEach(card => {
+    card.classList.toggle('active-filter', card.dataset.filterStatus === status);
+  });
+  applyFilters();
+}
+
+function applyFilters() {
+  currentPage = 1;
+  loadReportsData();
+
+  const searchInput = document.getElementById('searchInput');
+  const stateFilter = document.getElementById('stateFilter');
+  const typeFilter = document.getElementById('typeFilter');
+  const clearFiltersBtn = document.getElementById('clearFilters');
+
+  const hasFilters = Boolean((searchInput && searchInput.value) || (stateFilter && stateFilter.value) || (typeFilter && typeFilter.value) || activeStatusFilter);
+  if (clearFiltersBtn) {
+    clearFiltersBtn.classList.toggle('visible', hasFilters);
+  }
+}
+
+function clearAllFilters() {
+  const searchInput = document.getElementById('searchInput');
+  const stateFilter = document.getElementById('stateFilter');
+  const lgaFilter = document.getElementById('lgaFilter');
+  const typeFilter = document.getElementById('typeFilter');
+  const statusFilter = document.getElementById('statusFilter');
+  const clearFiltersBtn = document.getElementById('clearFilters');
+
+  if (searchInput) searchInput.value = '';
+  if (stateFilter) stateFilter.value = '';
+  if (lgaFilter) {
+    lgaFilter.innerHTML = '<option value="">Select state first</option>';
+    lgaFilter.disabled = true;
+  }
+  if (typeFilter) typeFilter.value = '';
+  if (statusFilter) statusFilter.value = '';
+  activeStatusFilter = '';
+
+  document.querySelectorAll('.stat-mini').forEach(c => c.classList.remove('active-filter'));
+  if (clearFiltersBtn) clearFiltersBtn.classList.remove('visible');
+  applyFilters();
+}
+
+/* =========================================================
+   RENDER TABLE & CARDS
+   ========================================================= */
+function renderTable() {
+  const tableBody = document.getElementById('tableBody');
+  const cardsContainer = document.getElementById('reportCards');
+  const resultCount = document.getElementById('resultCount');
+
+  if (resultCount) resultCount.textContent = filteredReports.length;
+
+  const start = (currentPage - 1) * perPage;
+  const end = start + perPage;
+  const pageData = filteredReports.slice(start, end);
+
+  if (pageData.length === 0) {
+    const emptyHtml = `
+      <div class="empty-state">
+        <i data-lucide="file-x"></i>
+        <h3>No emergency reports found</h3>
+        <p>Try adjusting your search criteria or active filters.</p>
+        <button class="btn btn-primary" onclick="clearAllFilters()">
+          <i data-lucide="refresh-cw"></i>
+          Reset Filters
+        </button>
+      </div>
+    `;
+    if (tableBody) tableBody.innerHTML = `<tr><td colspan="8">${emptyHtml}</td></tr>`;
+    if (cardsContainer) cardsContainer.innerHTML = emptyHtml;
+    renderPagination();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    return;
+  }
+
+  if (tableBody) {
+    tableBody.innerHTML = pageData.map(r => `
+      <tr>
+        <td><span class="report-id" onclick="openDetailPanel('${r.id}')">${escapeHTML(r.id)}</span></td>
+        <td>
+          <div class="type-cell ${escapeHTML(r.type.toLowerCase())}">
+            <i data-lucide="${getTypeIcon(r.type)}"></i>
+            <span>${escapeHTML(r.type)}</span>
+          </div>
+        </td>
+        <td>
+          <div class="location-cell">
+            <span class="primary">${escapeHTML(r.location)}</span>
+            <span class="secondary">${escapeHTML(r.state)}</span>
+          </div>
+        </td>
+        <td>
+          <div class="reporter-cell">
+            <span class="reporter-phone">${maskPhone(r.reporter)}</span>
+          </div>
+        </td>
+        <td>
+          ${r.respondent ? `
+            <div class="respondent-cell">
+              <div class="resp-avatar">${getInitials(r.respondent.name)}</div>
+              <div>
+                <div class="resp-name">${escapeHTML(r.respondent.name)}</div>
+                <div style="font-size: 11px; color: var(--muted);">${maskPhone(r.respondent.phone)}</div>
+              </div>
+            </div>
+          ` : `
+            <div class="respondent-cell">
+              <div class="resp-avatar unassigned"><i data-lucide="user-x" style="width: 14px; height: 14px;"></i></div>
+              <span class="resp-name unassigned">Unassigned</span>
+            </div>
+          `}
+        </td>
+        <td>
+          <span class="status-badge ${r.status}">
+            ${capitalize(r.status)}
+          </span>
+        </td>
+        <td>
+          <div class="date-cell">
+            <span>${formatDate(r.dateReceived)}</span>
+          </div>
+        </td>
+        <td>
+          <div class="action-group">
+            <button class="act-btn act-btn-view" title="View details" onclick="openDetailPanel('${r.id}')">
+              <i data-lucide="eye"></i> Details
+            </button>
+            <button class="act-btn act-btn-reassign" title="Assign Responder" onclick="openReassignModal('${r.id}')">
+              <i data-lucide="user-check"></i> Assign
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  if (cardsContainer) {
+    cardsContainer.innerHTML = pageData.map(r => `
+      <div class="report-card-item">
+        <div class="report-card-top">
+          <div>
+            <span class="report-id" onclick="openDetailPanel('${r.id}')">${escapeHTML(r.id)}</span>
+            <div class="type-cell ${escapeHTML(r.type.toLowerCase())}" style="margin-top: 4px;">
+              <i data-lucide="${getTypeIcon(r.type)}"></i>
+              <span>${escapeHTML(r.type)}</span>
+            </div>
+          </div>
+          <span class="status-badge ${r.status}">${capitalize(r.status)}</span>
+        </div>
+        <div class="report-card-body">
+          <div class="report-card-field">
+            <div class="label">Location</div>
+            <div class="value">${escapeHTML(r.location)}</div>
+          </div>
+          <div class="report-card-field">
+            <div class="label">Reporter</div>
+            <div class="value">${maskPhone(r.reporter)}</div>
+          </div>
+          <div class="report-card-field">
+            <div class="label">Responder</div>
+            <div class="value">${escapeHTML(r.respondent ? r.respondent.name : 'Unassigned')}</div>
+          </div>
+          <div class="report-card-field">
+            <div class="label">Received</div>
+            <div class="value" style="font-size: 11px;">${formatDate(r.dateReceived)}</div>
+          </div>
+        </div>
+        <div class="report-card-actions">
+          <button class="act-btn act-btn-view" onclick="openDetailPanel('${r.id}')"><i data-lucide="eye"></i> Details</button>
+          <button class="act-btn act-btn-reassign" onclick="openReassignModal('${r.id}')"><i data-lucide="user-check"></i> Assign</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  renderPagination();
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function renderPagination() {
+  const paginationInfo = document.getElementById('paginationInfo');
+  const paginationControls = document.getElementById('paginationControls');
+  if (!paginationInfo || !paginationControls) return;
+
+  const totalPages = Math.ceil(filteredReports.length / perPage) || 1;
+  const start = filteredReports.length === 0 ? 0 : (currentPage - 1) * perPage + 1;
+  const end = Math.min(currentPage * perPage, filteredReports.length);
+
+  paginationInfo.textContent = `Showing ${start}–${end} of ${filteredReports.length} reports`;
+
+  let html = `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="goPage(${currentPage - 1})"><i data-lucide="chevron-left"></i></button>`;
+
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+  }
+
+  html += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="goPage(${currentPage + 1})"><i data-lucide="chevron-right"></i></button>`;
+  paginationControls.innerHTML = html;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function goPage(p) {
+  const totalPages = Math.ceil(filteredReports.length / perPage) || 1;
+  if (p < 1 || p > totalPages) return;
+  currentPage = p;
   renderTable();
-  updateStats();
-  initLucideIcons();
-});
+}
+
+function updateStats(stats) {
+  if (!stats) return;
+  const statTotal = document.getElementById('statTotal');
+  const statPending = document.getElementById('statPending');
+  const statResponding = document.getElementById('statResponding');
+  const statResolved = document.getElementById('statResolved');
+
+  if (statTotal) statTotal.textContent = Number(stats.total || 0).toLocaleString();
+  if (statPending) statPending.textContent = Number(stats.pending || 0).toLocaleString();
+  if (statResponding) statResponding.textContent = Number(stats.responding || 0).toLocaleString();
+  if (statResolved) statResolved.textContent = Number(stats.resolved || 0).toLocaleString();
+}
+
+/* =========================================================
+   DETAIL SLIDE-OVER PANEL (LIVE FROM DB)
+   ========================================================= */
+async function openDetailPanel(id) {
+  const r = reports.find(x => x.id === id);
+  if (!r) return;
+
+  currentDetailReport = r;
+
+  // Set header info
+  const detailId = document.getElementById('detailId');
+  const detailStatus = document.getElementById('detailStatusBadge');
+  const detailType = document.getElementById('detailType');
+  const detailTypeIcon = document.getElementById('detailTypeIcon');
+
+  if (detailId) detailId.textContent = r.id;
+  if (detailStatus) {
+    detailStatus.textContent = capitalize(r.status);
+    detailStatus.className = `status-badge ${r.status}`;
+  }
+  if (detailType) detailType.textContent = r.type;
+  if (detailTypeIcon) detailTypeIcon.setAttribute('data-lucide', getTypeIcon(r.type));
+
+  // Action buttons in detail
+  const actionBtns = document.getElementById('detailActionButtons');
+  if (actionBtns) {
+    actionBtns.innerHTML = `
+      <button class="btn btn-sm btn-primary" onclick="openReassignModal('${r.id}')">
+        <i data-lucide="user-check"></i> Assign / Reassign
+      </button>
+      ${r.status !== 'resolved' ? `
+        <button class="btn btn-sm btn-danger" onclick="markReportResolved(${r.dbId})">
+          <i data-lucide="check-circle-2"></i> Mark Resolved
+        </button>
+      ` : ''}
+      <button class="btn btn-sm btn-ghost" onclick="closeDetailPanel()">
+        <i data-lucide="arrow-left"></i> Back
+      </button>
+    `;
+  }
+
+  // Info grid
+  const infoGrid = document.getElementById('detailInfoGrid');
+  if (infoGrid) {
+    infoGrid.innerHTML = `
+      <div class="info-item">
+        <div class="info-label">Incident Type</div>
+        <div class="info-value">${escapeHTML(r.type)}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Priority</div>
+        <div class="info-value" style="font-weight: 700; color: ${r.priority === 'critical' ? 'var(--red)' : 'var(--text)'};">${capitalize(r.priority)}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">State / LGA</div>
+        <div class="info-value">${escapeHTML(r.state)} • ${escapeHTML(r.lga)}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Landmark / Address</div>
+        <div class="info-value">${escapeHTML(r.location)}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Reporter Contact</div>
+        <div class="info-value">${maskPhone(r.reporter)}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Reporting Channel</div>
+        <div class="info-value" style="text-transform: uppercase;">${escapeHTML(r.source)}</div>
+      </div>
+    `;
+  }
+
+  // Description
+  const descEl = document.getElementById('detailDescription');
+  if (descEl) {
+    descEl.textContent = r.description || 'No additional incident description provided.';
+  }
+
+  // Assignment grid
+  const assignGrid = document.getElementById('detailAssignmentGrid');
+  if (assignGrid) {
+    if (r.respondent) {
+      assignGrid.innerHTML = `
+        <div class="info-item">
+          <div class="info-label">Assigned Responder</div>
+          <div class="info-value" style="font-weight: 700;">${escapeHTML(r.respondent.name)}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Responder Contact</div>
+          <div class="info-value">${maskPhone(r.respondent.phone)}</div>
+        </div>
+      `;
+    } else {
+      assignGrid.innerHTML = `
+        <div class="info-item" style="grid-column: span 2;">
+          <div class="info-value" style="color: var(--muted); font-style: italic;">No emergency respondent has been assigned to this report yet.</div>
+        </div>
+      `;
+    }
+  }
+
+  // Open panel
+  const panel = document.getElementById('detailPanel');
+  const overlay = document.getElementById('detailOverlay');
+  if (panel) panel.classList.add('active');
+  if (overlay) overlay.classList.add('active');
+
+  // Load live timeline
+  loadReportTimeline(r.dbId);
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+async function loadReportTimeline(dbId) {
+  const timelineEl = document.getElementById('detailTimeline');
+  if (!timelineEl) return;
+
+  timelineEl.innerHTML = '<div style="color: var(--muted); font-size: 12px;">Loading timeline history...</div>';
+
+  try {
+    const res = await fetch(`../api/reports.php?action=get&id=${dbId}`);
+    const json = await res.json();
+    if (json.status === 'success' && json.data && json.data.timeline) {
+      const items = json.data.timeline;
+      if (items.length === 0) {
+        timelineEl.innerHTML = `
+          <div class="timeline-item done">
+            <div class="timeline-dot done"><i data-lucide="check"></i></div>
+            <div class="timeline-content">
+              <div class="timeline-title">Report Created</div>
+              <div class="timeline-time">${formatDate(currentDetailReport ? currentDetailReport.dateReceived : new Date())}</div>
+              <div class="timeline-notes">Initial incident report received in database.</div>
+            </div>
+          </div>
+        `;
+      } else {
+        timelineEl.innerHTML = items.map((t, idx) => `
+          <div class="timeline-item done">
+            <div class="timeline-dot done"><i data-lucide="${t.action.includes('Assign') ? 'user-check' : (t.action.includes('Resolved') ? 'check-circle' : 'activity')}"></i></div>
+            <div class="timeline-content">
+              <div class="timeline-title">${escapeHTML(t.action)} ${t.new_status ? `(${capitalize(t.new_status)})` : ''}</div>
+              <div class="timeline-time">${formatDate(t.created_at)}</div>
+              <div class="timeline-notes">${escapeHTML(t.note || '')}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+  } catch (e) {
+    timelineEl.innerHTML = '<div style="color: var(--muted); font-size: 12px;">Timeline logged upon creation.</div>';
+  }
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function closeDetailPanel() {
+  const panel = document.getElementById('detailPanel');
+  const overlay = document.getElementById('detailOverlay');
+  if (panel) panel.classList.remove('active');
+  if (overlay) overlay.classList.remove('active');
+}
+
+/* =========================================================
+   REASSIGN MODAL & LOGIC
+   ========================================================= */
+function openReassignModal(reportId) {
+  const r = reports.find(x => x.id === reportId);
+  if (!r) return;
+
+  currentReassignReportId = r.dbId;
+
+  const reportIdEl = document.getElementById('reassignReportId');
+  if (reportIdEl) reportIdEl.textContent = r.id;
+
+  const curAssign = document.getElementById('currentAssignment');
+  if (curAssign) {
+    if (r.respondent) {
+      curAssign.innerHTML = `
+        <div class="resp-avatar">${getInitials(r.respondent.name)}</div>
+        <div>
+          <div class="name">${escapeHTML(r.respondent.name)}</div>
+          <div class="meta">${maskPhone(r.respondent.phone)} • ${escapeHTML(r.state)} Unit</div>
+        </div>
+      `;
+    } else {
+      curAssign.innerHTML = `
+        <div class="resp-avatar unassigned"><i data-lucide="user-x"></i></div>
+        <div>
+          <div class="name" style="color: var(--muted);">Unassigned</div>
+          <div class="meta">Awaiting responder assignment</div>
+        </div>
+      `;
+    }
+  }
+
+  // Populate responders dropdown
+  const select = document.getElementById('respondentSelect');
+  if (select) {
+    select.innerHTML = '<option value="">Select a responder...</option>';
+    availableRespondents.forEach(resp => {
+      const selected = r.respondent && Number(r.respondent.id) === Number(resp.id) ? 'selected' : '';
+      select.innerHTML += `<option value="${resp.id}" ${selected}>${escapeHTML(resp.name)} (${escapeHTML(resp.state || 'National')} • ${resp.unit || 'Responder'})</option>`;
+    });
+  }
+
+  const notes = document.getElementById('reassignNotes');
+  if (notes) notes.value = '';
+
+  openModal('reassignModal');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+async function submitReassign() {
+  const select = document.getElementById('respondentSelect');
+  const notes = document.getElementById('reassignNotes');
+
+  if (!select || !select.value) {
+    showToast('Please select a responder.', 'error');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('action', 'assign');
+  formData.append('report_id', currentReassignReportId);
+  formData.append('respondent_id', select.value);
+  formData.append('notes', notes ? notes.value.trim() : '');
+
+  try {
+    const res = await fetch('../api/reports.php', { method: 'POST', body: formData });
+    const json = await res.json();
+    if (json.status === 'success') {
+      closeModal('reassignModal');
+      showToast(json.message);
+      loadReportsData();
+      if (currentDetailReport && currentDetailReport.dbId === currentReassignReportId) {
+        openDetailPanel(currentDetailReport.id);
+      }
+    } else {
+      showToast(json.message || 'Assignment failed.', 'error');
+    }
+  } catch (err) {
+    showToast('Network error assigning report.', 'error');
+  }
+}
+
+/* =========================================================
+   RESOLVE REPORT
+   ========================================================= */
+async function markReportResolved(dbId) {
+  const confirmTitle = document.getElementById('confirmTitle');
+  const confirmMsg = document.getElementById('confirmMessage');
+  const confirmAction = document.getElementById('confirmAction');
+
+  if (confirmTitle) confirmTitle.textContent = 'Resolve Incident?';
+  if (confirmMsg) confirmMsg.textContent = 'Are you sure you want to mark this emergency report as resolved in the database?';
+  if (confirmAction) {
+    confirmAction.className = 'btn btn-primary';
+    confirmAction.textContent = 'Mark Resolved';
+    confirmAction.onclick = async () => {
+      closeModal('confirmModal');
+      const formData = new FormData();
+      formData.append('action', 'update_status');
+      formData.append('report_id', dbId);
+      formData.append('status', 'resolved');
+      formData.append('notes', 'Incident marked resolved by administrator');
+
+      try {
+        const res = await fetch('../api/reports.php', { method: 'POST', body: formData });
+        const json = await res.json();
+        if (json.status === 'success') {
+          showToast(json.message);
+          loadReportsData();
+          if (currentDetailReport && currentDetailReport.dbId === dbId) {
+            closeDetailPanel();
+          }
+        } else {
+          showToast(json.message || 'Operation failed.', 'error');
+        }
+      } catch (e) {
+        showToast('Error updating report status.', 'error');
+      }
+    };
+  }
+  openModal('confirmModal');
+}
+
+/* =========================================================
+   EXPORT CSV
+   ========================================================= */
+function exportReportsCSV() {
+  window.location.href = '../api/reports.php?action=export';
+}

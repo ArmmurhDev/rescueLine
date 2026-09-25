@@ -17,6 +17,48 @@ $extra_css        = [
 // Reusable Header & Sidebar
 require_once __DIR__ . '/../inc/header.php';
 require_once __DIR__ . '/../inc/sidebar_respondant.php';
+
+$db = get_db();
+$user_id = $_SESSION['user_id'] ?? null;
+$user_name = $_SESSION['user_name'] ?? 'Musa Ibrahim';
+$user_role = $_SESSION['user_role'] ?? 'Respondent';
+$user_status = 'active';
+
+// Fetch current user from database
+if ($user_id) {
+    $uStmt = $db->prepare("SELECT id, name, role, status FROM users WHERE id = ?");
+    $uStmt->execute([$user_id]);
+    $uRow = $uStmt->fetch();
+    if ($uRow) {
+        $user_name = $uRow['name'] ?: $user_name;
+        $user_role = $uRow['role'] ?: $user_role;
+        $user_status = $uRow['status'] ?: 'active';
+    }
+} else {
+    $uStmt = $db->query("SELECT id, name, role, status FROM users WHERE role = 'respondent' LIMIT 1");
+    $uRow = $uStmt->fetch();
+    if ($uRow) {
+        $user_name = $uRow['name'];
+        $user_role = $uRow['role'];
+        $user_status = $uRow['status'];
+        $user_id = (int)$uRow['id'];
+    }
+}
+
+// Compute initials
+$name_parts = explode(' ', trim($user_name));
+$user_initials = '';
+if (count($name_parts) >= 2) {
+    $user_initials = strtoupper(substr($name_parts[0], 0, 1) . substr($name_parts[1], 0, 1));
+} else {
+    $user_initials = strtoupper(substr($user_name, 0, 2));
+}
+
+// Get active count for this respondent
+$activeStmt = $db->prepare("SELECT COUNT(*) FROM reports WHERE (assigned_respondent_id = ? OR ? IS NULL) AND status IN ('assigned', 'responding')");
+$activeStmt->execute([$user_id, $user_id]);
+$active_reports_count = (int)($activeStmt->fetchColumn() ?: 0);
+$is_online = ($user_status === 'active');
 ?>
 
   <!-- ============ MAIN CONTENT AREA ============ -->
@@ -82,10 +124,10 @@ require_once __DIR__ . '/../inc/sidebar_respondant.php';
         </div>
 
         <div class="profile-chip">
-          <div class="avatar">AA</div>
+          <div class="avatar" id="navAvatar"><?= htmlspecialchars($user_initials) ?></div>
           <div>
-            <div class="name">Abdulrauf</div>
-            <div class="role">Respondent</div>
+            <div class="name" id="navName"><?= htmlspecialchars($user_name) ?></div>
+            <div class="role"><?= htmlspecialchars(ucfirst($user_role)) ?></div>
           </div>
         </div>
       </div>
@@ -95,21 +137,24 @@ require_once __DIR__ . '/../inc/sidebar_respondant.php';
     <section class="content">
 
       <!-- WELCOME BANNER -->
-      <div class="welcome-card">
+      <div class="welcome-card <?= !$is_online ? 'offline' : '' ?>" id="welcomeCard">
         <div class="welcome-left">
-          <div class="welcome-avatar">AA</div>
+          <div class="welcome-avatar <?= !$is_online ? 'offline' : '' ?>" id="welcomeAvatar"><?= htmlspecialchars($user_initials) ?></div>
           <div class="welcome-info">
-            <h3>Welcome back, Abdulrauf 👋</h3>
-            <p>You have <strong style="color: var(--green);">5 active emergency reports</strong> requiring attention.</p>
+            <h3 id="welcomeName">Welcome back, <?= htmlspecialchars($user_name) ?> 👋</h3>
+            <p>You have <strong style="color: var(--green);" id="activeCountMsg"><?= $active_reports_count ?> active emergency reports</strong> requiring attention.</p>
             <div class="status-line">
-              <span class="status-indicator"><span class="status-dot"></span> You are ONLINE</span>
-              <span>Last active: Just now</span>
+              <span class="status-indicator <?= !$is_online ? 'offline' : '' ?>" id="statusIndicator">
+                <span class="status-dot <?= !$is_online ? 'offline' : '' ?>" id="statusDot"></span> 
+                <span id="statusText">You are <?= $is_online ? 'ONLINE' : 'OFFLINE' ?></span>
+              </span>
+              <span id="statusLastActive">Last active: <?= $is_online ? 'Just now' : 'Offline' ?></span>
             </div>
           </div>
         </div>
-        <button class="btn btn-danger" id="offlineBtn">
-          <i data-lucide="wifi-off"></i>
-          Go Offline
+        <button class="btn <?= $is_online ? 'btn-danger' : 'btn-success' ?>" id="offlineBtn">
+          <i data-lucide="<?= $is_online ? 'wifi-off' : 'wifi' ?>" id="offlineBtnIcon"></i>
+          <span id="offlineBtnText"><?= $is_online ? 'Go Offline' : 'Go Online' ?></span>
         </button>
       </div>
 
@@ -165,27 +210,7 @@ require_once __DIR__ . '/../inc/sidebar_respondant.php';
               <span class="dot"></span>
               Incoming Emergency Reports
             </div>
-            <a href="reports.php" class="card-link">View All <i data-lucide="arrow-right"></i></a>
-          </div>
-
-          <div class="filter-bar">
-            <div class="search-box">
-              <i data-lucide="search" class="search-icon"></i>
-              <input type="text" placeholder="Search reports..." id="searchInput" autocomplete="off" />
-            </div>
-            <select class="filter-select" id="priorityFilter" aria-label="Filter by priority">
-              <option value="">All Priorities</option>
-              <option value="critical">Critical</option>
-              <option value="high">High</option>
-              <option value="normal">Normal</option>
-            </select>
-            <select class="filter-select" id="typeFilter" aria-label="Filter by emergency type">
-              <option value="">All Types</option>
-              <option value="Fire">Fire</option>
-              <option value="Accident">Accident</option>
-              <option value="Medical">Medical</option>
-              <option value="Flood">Flood</option>
-            </select>
+            <a href="incorming-report.php" class="card-link" onclick="if(window.displayIncomingReportsContent){window.displayIncomingReportsContent(); return false;}">View All <i data-lucide="arrow-right"></i></a>
           </div>
 
           <div class="table-wrap">
@@ -195,9 +220,7 @@ require_once __DIR__ . '/../inc/sidebar_respondant.php';
                   <th>Report ID</th>
                   <th>Emergency Type</th>
                   <th>Location</th>
-                  <th>Time</th>
                   <th>Priority</th>
-                  <th>Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -220,33 +243,16 @@ require_once __DIR__ . '/../inc/sidebar_respondant.php';
         </div>
       </div>
 
-      <!-- CHARTS & LOCATION BREAKDOWN -->
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="dot"></span>
-              Emergency Types
-            </div>
-            <select class="filter-select" style="min-width: 100px;">
-              <option>This Month</option>
-              <option>Last Month</option>
-              <option>This Year</option>
-            </select>
-          </div>
-          <div class="chart-wrap">
-            <canvas id="emergencyChart" class="emergencyChart"></canvas>
+      <!-- EMERGENCY TYPES CHART -->
+      <div class="card" style="margin-top: 24px;">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="dot"></span>
+            Emergency Types Distribution
           </div>
         </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="dot"></span>
-              Reports by Location
-            </div>
-          </div>
-          <div class="location-list" id="locationList"></div>
+        <div class="chart-wrap" style="position: relative; height: 300px; width: 100%;">
+          <canvas id="emergencyChart" class="emergencyChart"></canvas>
         </div>
       </div>
 

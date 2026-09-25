@@ -1,6 +1,7 @@
 /**
- * RescueLine - Incoming Reports Script
- * Handles table/card rendering, search filters, pagination, and bulk selection.
+ * RescueLine - Incoming Reports Script (Real-time DB Connection)
+ * Handles live table/card rendering, search filters, pagination, real-time background polling,
+ * and incident responses against MySQL database.
  */
 
 // Template generator for instant rendering
@@ -11,11 +12,14 @@ window.getIncomingReportsHTML = function() {
       <!-- PAGE HEADER -->
       <div class="page-header">
         <div class="page-header-left">
-          <h1>Incoming Emergency Reports</h1>
-          <p>Manage and respond to emergency reports submitted via USSD</p>
+          <h1>
+            Incoming Emergency Reports
+            <span class="live-dot" title="Live Sync Active" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; margin-left: 8px; box-shadow: 0 0 8px #22c55e;"></span>
+          </h1>
+          <p>Manage and respond to emergency reports submitted via USSD / Web in real-time</p>
         </div>
         <div class="page-header-actions">
-          <button type="button" class="btn btn-secondary">
+          <button type="button" class="btn btn-secondary" onclick="window.location.href='../api/reports.php?action=export'">
             <i data-lucide="download"></i>
             Export
           </button>
@@ -31,28 +35,28 @@ window.getIncomingReportsHTML = function() {
         <div class="stat-mini">
           <div class="stat-mini-icon green"><i data-lucide="inbox"></i></div>
           <div class="stat-mini-info">
-            <div class="value">12</div>
+            <div class="value" id="statIncomingTotal">0</div>
             <div class="label">Total New</div>
           </div>
         </div>
         <div class="stat-mini">
           <div class="stat-mini-icon red"><i data-lucide="alert-octagon"></i></div>
           <div class="stat-mini-info">
-            <div class="value">3</div>
+            <div class="value" id="statIncomingCritical">0</div>
             <div class="label">Critical</div>
           </div>
         </div>
         <div class="stat-mini">
           <div class="stat-mini-icon orange"><i data-lucide="clock"></i></div>
           <div class="stat-mini-info">
-            <div class="value">5</div>
+            <div class="value" id="statIncomingPending">0</div>
             <div class="label">Awaiting Response</div>
           </div>
         </div>
         <div class="stat-mini">
           <div class="stat-mini-icon blue"><i data-lucide="user-check"></i></div>
           <div class="stat-mini-info">
-            <div class="value">4</div>
+            <div class="value" id="statIncomingAssigned">0</div>
             <div class="label">Assigned Today</div>
           </div>
         </div>
@@ -69,7 +73,8 @@ window.getIncomingReportsHTML = function() {
             <option value="">All Priorities</option>
             <option value="critical">Critical</option>
             <option value="high">High</option>
-            <option value="normal">Normal</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
           </select>
           <select class="filter-select" id="typeFilter" aria-label="Filter by emergency type">
             <option value="">All Types</option>
@@ -79,42 +84,11 @@ window.getIncomingReportsHTML = function() {
             <option value="Flood">Flood</option>
             <option value="Security">Security</option>
           </select>
-          <select class="filter-select" id="statusFilter" aria-label="Filter by status">
-            <option value="">All Status</option>
-            <option value="new">New</option>
-            <option value="assigned">Assigned</option>
-            <option value="in-progress">In Progress</option>
-          </select>
           <div class="filter-actions">
             <button type="button" class="icon-btn-small" title="Reset filters" id="resetFilters">
               <i data-lucide="rotate-ccw"></i>
             </button>
-            <button type="button" class="icon-btn-small" title="More filters">
-              <i data-lucide="sliders-horizontal"></i>
-            </button>
           </div>
-        </div>
-      </div>
-
-      <!-- BULK ACTIONS -->
-      <div class="bulk-actions" id="bulkActions">
-        <div class="bulk-info">
-          <i data-lucide="check-square"></i>
-          <span id="selectedCount">0 reports selected</span>
-        </div>
-        <div class="bulk-actions-buttons">
-          <button type="button" class="bulk-btn bulk-btn-accept">
-            <i data-lucide="check-circle"></i>
-            Accept Selected
-          </button>
-          <button type="button" class="bulk-btn bulk-btn-assign">
-            <i data-lucide="user-plus"></i>
-            Assign
-          </button>
-          <button type="button" class="bulk-btn bulk-btn-clear" id="clearSelection">
-            <i data-lucide="x"></i>
-            Clear
-          </button>
         </div>
       </div>
 
@@ -124,11 +98,11 @@ window.getIncomingReportsHTML = function() {
           <table class="reports-table">
             <thead>
               <tr>
-                <th><input type="checkbox" id="selectAll" /></th>
                 <th>Report ID</th>
                 <th>Emergency Type</th>
                 <th>Location</th>
-                <th>Reporter</th>
+                <th>Receive</th>
+                <th>Priority</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -137,50 +111,16 @@ window.getIncomingReportsHTML = function() {
         </div>
 
         <div class="report-cards" id="reportCards"></div>
-
-        <!-- PAGINATION -->
-        <div class="pagination-bar">
-          <div class="pagination-info">
-            Showing <strong>1-10</strong> of <strong>47</strong> reports
-          </div>
-          <div class="pagination-controls">
-            <button type="button" class="page-btn" disabled>
-              <i data-lucide="chevron-left"></i>
-            </button>
-            <button type="button" class="page-btn active">1</button>
-            <button type="button" class="page-btn">2</button>
-            <button type="button" class="page-btn">3</button>
-            <button type="button" class="page-btn">4</button>
-            <button type="button" class="page-btn">5</button>
-            <button type="button" class="page-btn">
-              <i data-lucide="chevron-right"></i>
-            </button>
-          </div>
-        </div>
       </div>
 
     </div>
   `;
 };
 
-function initIncomingReports() {
-  /* =========================================================
-     MOCK DATA
-     ========================================================= */
-  const MOCK_REPORTS = [
-    { id: 'RL-0025', type: 'Fire',      location: 'Kaduna South Market', state: 'Kaduna', phone: '0803***219', time: '11:42 AM', priority: 'critical', status: 'new' },
-    { id: 'RL-0024', type: 'Accident',  location: 'Zaria City',          state: 'Kaduna', phone: '0812***445', time: '11:34 AM', priority: 'critical', status: 'new' },
-    { id: 'RL-0023', type: 'Medical',   location: 'Chikun LGA',          state: 'Kaduna', phone: '0705***882', time: '11:27 AM', priority: 'high',     status: 'new' },
-    { id: 'RL-0022', type: 'Flood',     location: 'Kawo Area',           state: 'Kaduna', phone: '0909***117', time: '11:17 AM', priority: 'normal',   status: 'new' },
-    { id: 'RL-0021', type: 'Security',  location: 'Sabon Tasha',         state: 'Kaduna', phone: '0806***334', time: '11:05 AM', priority: 'high',     status: 'assigned' },
-    { id: 'RL-0020', type: 'Fire',      location: 'Ungwan Rimi',         state: 'Kaduna', phone: '0813***556', time: '10:52 AM', priority: 'critical', status: 'in-progress' },
-    { id: 'RL-0019', type: 'Medical',   location: 'Barnawa',             state: 'Kaduna', phone: '0708***778', time: '10:38 AM', priority: 'normal',   status: 'new' },
-    { id: 'RL-0018', type: 'Accident',  location: 'Kakuri',              state: 'Kaduna', phone: '0902***991', time: '10:25 AM', priority: 'high',     status: 'assigned' },
-    { id: 'RL-0017', type: 'Flood',     location: 'Tudun Wada',          state: 'Kaduna', phone: '0805***223', time: '10:12 AM', priority: 'normal',   status: 'new' },
-    { id: 'RL-0016', type: 'Security',  location: 'Malali',              state: 'Kaduna', phone: '0814***667', time: '09:58 AM', priority: 'high',     status: 'in-progress' }
-  ];
+async function initIncomingReports() {
+  const reportsBody = document.getElementById('reportsBody');
+  const reportCards = document.getElementById('reportCards');
 
-  /* Helpers */
   function getIconForType(type) {
     const map = {
       'Fire': 'flame',
@@ -189,11 +129,22 @@ function initIncomingReports() {
       'Flood': 'waves',
       'Security': 'shield-alert'
     };
-    return map[type] || 'alert-circle';
+    if (!type) return 'alert-circle';
+    for (const key in map) {
+      if (type.toLowerCase().includes(key.toLowerCase())) return map[key];
+    }
+    return 'alert-circle';
   }
 
   function getTypeClass(type) { 
-    return (type || '').toLowerCase(); 
+    if (!type) return 'other';
+    const t = type.toLowerCase();
+    if (t.includes('fire')) return 'fire';
+    if (t.includes('accident')) return 'accident';
+    if (t.includes('medical')) return 'medical';
+    if (t.includes('flood')) return 'flood';
+    if (t.includes('security')) return 'security';
+    return 'other';
   }
 
   function capitalize(s) { 
@@ -201,13 +152,23 @@ function initIncomingReports() {
     return s.charAt(0).toUpperCase() + s.slice(1); 
   }
 
-  function formatStatus(status) {
-    const map = {
-      'new': 'New',
-      'assigned': 'Assigned',
-      'in-progress': 'In Progress'
-    };
-    return map[status] || status;
+  function maskPhoneNumber(phone) {
+    if (!phone) return '—';
+    const str = String(phone).trim();
+    if (str.length <= 5) return '*****';
+    if (str.startsWith('+')) {
+      const prefix = str.slice(0, 4);
+      const suffix = str.slice(-4);
+      return `${prefix}*****${suffix}`;
+    } else if (str.length >= 10) {
+      const prefix = str.slice(0, 3);
+      const suffix = str.slice(-4);
+      return `${prefix}*****${suffix}`;
+    } else {
+      const prefix = str.slice(0, 2);
+      const suffix = str.slice(-2);
+      return `${prefix}*****${suffix}`;
+    }
   }
 
   function escapeHTML(str) {
@@ -226,11 +187,44 @@ function initIncomingReports() {
     }
   }
 
-  /* =========================================================
-     RENDER REPORTS
-     ========================================================= */
-  const reportsBody = document.getElementById('reportsBody');
-  const reportCards = document.getElementById('reportCards');
+  let incomingList = [];
+  let knownIds = new Set();
+
+  async function loadData(isPolling = false) {
+    try {
+      const res = await fetch('../api/reports.php?action=list&status=pending&limit=100');
+      const json = await res.json();
+      if (json.status === 'success' && json.data) {
+        const newList = json.data.reports || [];
+        
+        // Detect if there are changes
+        const newIds = new Set(newList.map(r => r.id));
+        const hasChanged = newList.length !== incomingList.length || 
+                           newList.some((r, i) => !incomingList[i] || incomingList[i].id !== r.id);
+
+        if (hasChanged || !isPolling) {
+          incomingList = newList;
+          knownIds = newIds;
+          filterLocal();
+          updateIncomingStats(incomingList);
+        }
+      }
+    } catch (e) {
+      console.warn('Live sync poll error:', e);
+    }
+  }
+
+  function updateIncomingStats(list) {
+    const totalEl = document.getElementById('statIncomingTotal');
+    const critEl = document.getElementById('statIncomingCritical');
+    const pendEl = document.getElementById('statIncomingPending');
+    const assEl = document.getElementById('statIncomingAssigned');
+
+    if (totalEl) totalEl.textContent = list.length;
+    if (critEl) critEl.textContent = list.filter(r => r.priority === 'critical').length;
+    if (pendEl) pendEl.textContent = list.filter(r => r.status === 'pending').length;
+    if (assEl) assEl.textContent = list.filter(r => r.assigned_at).length;
+  }
 
   function renderReports(reports) {
     if (!reports || reports.length === 0) {
@@ -240,7 +234,7 @@ function initIncomingReports() {
             <div class="empty-state">
               <i data-lucide="inbox"></i>
               <h3>No Incoming Reports</h3>
-              <p>No matching emergency reports found.</p>
+              <p>No new emergency reports pending response at this time.</p>
             </div>
           </td>
         </tr>
@@ -251,7 +245,7 @@ function initIncomingReports() {
           <div class="empty-state">
             <i data-lucide="inbox"></i>
             <h3>No Incoming Reports</h3>
-            <p>No matching emergency reports found.</p>
+            <p>No new emergency reports pending response at this time.</p>
           </div>
         `;
       }
@@ -259,201 +253,160 @@ function initIncomingReports() {
       return;
     }
 
-    // Render Table
     if (reportsBody) {
       reportsBody.innerHTML = reports.map(r => `
         <tr>
-          <td><input type="checkbox" class="report-checkbox" data-id="${escapeHTML(r.id)}" /></td>
-          <td><span class="report-id" onclick="window.viewReport('${escapeHTML(r.id)}')">${escapeHTML(r.id)}</span></td>
+          <td><span class="report-id">${escapeHTML(r.reportCode || ('RL-' + r.id))}</span></td>
           <td>
             <div class="emergency-type ${escapeHTML(getTypeClass(r.type))}">
               <i data-lucide="${escapeHTML(getIconForType(r.type))}"></i>
-              ${escapeHTML(r.type)}
+              ${escapeHTML(r.type || 'Emergency')}
             </div>
           </td>
           <td>
             <div class="location-text">
-              <span class="primary">${escapeHTML(r.location)}</span>
+              <span class="primary">${escapeHTML(r.landmark || r.lga)}</span>
               <span class="secondary">${escapeHTML(r.state)}</span>
             </div>
           </td>
           <td>
-            <div class="reporter-info">
-              <span class="phone">${escapeHTML(r.phone)}</span>
-              <span class="time">${escapeHTML(r.time)}</span>
-            </div>
+            <span class="phone-masked" style="font-family: 'SF Mono', Monaco, monospace; font-size: 12px; font-weight: 500; color: var(--text-soft);">
+              ${escapeHTML(maskPhoneNumber(r.reporter || r.reporter_phone))}
+            </span>
           </td>
+          <td><span class="priority-badge ${escapeHTML((r.priority || 'normal').toLowerCase())}">${escapeHTML(capitalize(r.priority || 'Normal'))}</span></td>
           <td>
-            <div class="action-buttons">
-              <a href="report-details.php?id=${encodeURIComponent(r.id)}" class="action-btn action-btn-view" onclick="if(window.displayReportDetails){event.preventDefault();window.displayReportDetails('${escapeHTML(r.id)}');}">
-                <i data-lucide="eye"></i>
-                View
+            <div class="action-buttons" style="display: flex; gap: 6px;">
+              <a href="report-details.php?id=${r.id}" class="btn btn-secondary btn-sm">
+                <i data-lucide="eye"></i> View
               </a>
+              <button type="button" class="btn btn-primary btn-sm" onclick="acceptIncident(${r.id})">
+                <i data-lucide="check"></i> Accept
+              </button>
             </div>
           </td>
         </tr>
       `).join('');
     }
 
-    // Render Mobile Cards
     if (reportCards) {
       reportCards.innerHTML = reports.map(r => `
         <div class="report-card-item">
           <div class="report-card-top">
-            <span class="report-card-id">${escapeHTML(r.id)}</span>
+            <span class="report-card-id">${escapeHTML(r.reportCode || ('RL-' + r.id))}</span>
             <span class="priority-badge ${escapeHTML(r.priority)}">${escapeHTML(capitalize(r.priority))}</span>
           </div>
           <div class="report-card-body">
             <div class="report-card-field">
               <div class="label">Type</div>
               <div class="value emergency-type ${escapeHTML(getTypeClass(r.type))}">
-                <i data-lucide="${escapeHTML(getIconForType(r.type))}"></i> ${escapeHTML(r.type)}
+                <i data-lucide="${escapeHTML(getIconForType(r.type))}"></i> ${escapeHTML(r.type || 'Emergency')}
               </div>
             </div>
             <div class="report-card-field">
               <div class="label">Location</div>
-              <div class="value">${escapeHTML(r.location)}, ${escapeHTML(r.state)}</div>
+              <div class="value">${escapeHTML(r.landmark || r.lga)}, ${escapeHTML(r.state)}</div>
             </div>
             <div class="report-card-field">
-              <div class="label">Reporter</div>
-              <div class="value">${escapeHTML(r.phone)}</div>
-            </div>
-            <div class="report-card-field">
-              <div class="label">Time</div>
-              <div class="value">${escapeHTML(r.time)}</div>
-            </div>
-            <div class="report-card-field">
-              <div class="label">Status</div>
-              <div class="value"><span class="status-badge ${escapeHTML(r.status)}">${escapeHTML(formatStatus(r.status))}</span></div>
+              <div class="label">Receive</div>
+              <div class="value" style="font-family: 'SF Mono', Monaco, monospace;">${escapeHTML(maskPhoneNumber(r.reporter || r.reporter_phone))}</div>
             </div>
           </div>
-          <div class="report-card-actions">
-            <a href="report-details.php?id=${encodeURIComponent(r.id)}" class="action-btn action-btn-view" onclick="if(window.displayReportDetails){event.preventDefault();window.displayReportDetails('${escapeHTML(r.id)}');}">
-              <i data-lucide="eye"></i>
-              View Details
+          <div class="report-card-actions" style="display: flex; gap: 8px;">
+            <a href="report-details.php?id=${r.id}" class="btn btn-secondary" style="flex: 1; justify-content: center;">
+              <i data-lucide="eye"></i> View
             </a>
+            <button type="button" class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="acceptIncident(${r.id})">
+              <i data-lucide="check"></i> Accept
+            </button>
           </div>
         </div>
       `).join('');
     }
 
     refreshIcons();
-    updateBulkActions();
   }
 
-  // Initial render
-  renderReports(MOCK_REPORTS);
+  function formatTimeShort(d) {
+    if (!d) return 'Just now';
+    return new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  }
 
-  /* =========================================================
-     SEARCH & FILTERS
-     ========================================================= */
+  // Filter listeners
   const searchInput = document.getElementById('searchInput');
   const priorityFilter = document.getElementById('priorityFilter');
   const typeFilter = document.getElementById('typeFilter');
-  const statusFilter = document.getElementById('statusFilter');
   const resetFilters = document.getElementById('resetFilters');
 
-  function applyFilters() {
+  function filterLocal() {
     const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
-    const p = priorityFilter ? priorityFilter.value : '';
-    const t = typeFilter ? typeFilter.value : '';
-    const s = statusFilter ? statusFilter.value : '';
-    
-    const filtered = MOCK_REPORTS.filter(r => {
-      const matchQ = !q || 
-        r.id.toLowerCase().includes(q) || 
-        r.type.toLowerCase().includes(q) || 
-        r.location.toLowerCase().includes(q) ||
-        r.state.toLowerCase().includes(q) ||
-        r.phone.toLowerCase().includes(q);
-      const matchP = !p || r.priority === p;
-      const matchT = !t || r.type === t;
-      const matchS = !s || r.status === s;
-      return matchQ && matchP && matchT && matchS;
+    const p = (priorityFilter ? priorityFilter.value : '').toLowerCase();
+    const t = (typeFilter ? typeFilter.value : '').toLowerCase();
+
+    const filtered = incomingList.filter(r => {
+      const matchQ = !q || (r.reportCode && r.reportCode.toLowerCase().includes(q)) || 
+                           (r.type && r.type.toLowerCase().includes(q)) || 
+                           (r.landmark && r.landmark.toLowerCase().includes(q)) ||
+                           (r.state && r.state.toLowerCase().includes(q)) ||
+                           (r.lga && r.lga.toLowerCase().includes(q));
+      const matchP = !p || (r.priority && r.priority.toLowerCase() === p);
+      const matchT = !t || (r.type && r.type.toLowerCase().includes(t));
+      return matchQ && matchP && matchT;
     });
-    
+
     renderReports(filtered);
   }
 
-  if (searchInput) searchInput.addEventListener('input', applyFilters);
-  if (priorityFilter) priorityFilter.addEventListener('change', applyFilters);
-  if (typeFilter) typeFilter.addEventListener('change', applyFilters);
-  if (statusFilter) statusFilter.addEventListener('change', applyFilters);
-
+  if (searchInput) searchInput.addEventListener('input', filterLocal);
+  if (priorityFilter) priorityFilter.addEventListener('change', filterLocal);
+  if (typeFilter) typeFilter.addEventListener('change', filterLocal);
   if (resetFilters) {
     resetFilters.addEventListener('click', () => {
       if (searchInput) searchInput.value = '';
       if (priorityFilter) priorityFilter.value = '';
       if (typeFilter) typeFilter.value = '';
-      if (statusFilter) statusFilter.value = '';
-      applyFilters();
+      renderReports(incomingList);
     });
   }
 
-  /* =========================================================
-     CHECKBOX BULK SELECTION
-     ========================================================= */
-  const selectAll = document.getElementById('selectAll');
-  const bulkActions = document.getElementById('bulkActions');
-  const selectedCount = document.getElementById('selectedCount');
-  const clearSelection = document.getElementById('clearSelection');
+  window.acceptIncident = async function(reportId) {
+    const formData = new FormData();
+    formData.append('action', 'update_status');
+    formData.append('report_id', reportId);
+    formData.append('status', 'responding');
+    formData.append('notes', 'Accepted by emergency responder.');
 
-  if (selectAll) {
-    selectAll.addEventListener('change', (e) => {
-      const checkboxes = document.querySelectorAll('.report-checkbox');
-      checkboxes.forEach(cb => cb.checked = e.target.checked);
-      updateBulkActions();
-    });
-  }
-
-  document.addEventListener('change', (e) => {
-    if (e.target && e.target.classList.contains('report-checkbox')) {
-      updateBulkActions();
-    }
-  });
-
-  if (clearSelection) {
-    clearSelection.addEventListener('click', () => {
-      if (selectAll) selectAll.checked = false;
-      document.querySelectorAll('.report-checkbox').forEach(cb => cb.checked = false);
-      updateBulkActions();
-    });
-  }
-
-  function updateBulkActions() {
-    const checked = document.querySelectorAll('.report-checkbox:checked');
-    if (bulkActions && selectedCount) {
-      if (checked.length > 0) {
-        bulkActions.classList.add('active');
-        selectedCount.textContent = `${checked.length} report${checked.length > 1 ? 's' : ''} selected`;
+    try {
+      const res = await fetch('../api/reports.php', { method: 'POST', body: formData });
+      const json = await res.json();
+      if (json.status === 'success') {
+        loadData(false);
       } else {
-        bulkActions.classList.remove('active');
+        alert(json.message);
       }
+    } catch (e) {
+      alert('Network error accepting incident.');
     }
+  };
+
+  // Initial load
+  await loadData(false);
+
+  // Real-time automatic polling every 3 seconds
+  if (window._incomingPollInterval) {
+    clearInterval(window._incomingPollInterval);
   }
-
-  /* =========================================================
-     GLOBAL ACTION HANDLERS
-     ========================================================= */
-  window.viewReport = function(id) {
-    if (typeof window.displayReportDetails === 'function') {
-      window.displayReportDetails(id);
-    } else {
-      window.location.href = `report-details.php?id=${encodeURIComponent(id)}`;
+  window._incomingPollInterval = setInterval(() => {
+    // Only poll if currently on incoming reports page
+    if (document.getElementById('reportsBody') || document.getElementById('incomingReportsContainer')) {
+      loadData(true);
     }
-  };
-
-  window.acceptReport = function(id) {
-    alert(`Accepting report ${id}...\n\nIn production, this triggers: api/accept_report.php?id=${id}`);
-  };
-
-  refreshIcons();
+  }, 3000);
 }
 
-// Export function to global window
-window.initIncomingReports = initIncomingReports;
-
-// Auto-run if document already has incomingReportsContainer
-if (document.getElementById('incomingReportsContainer')) {
-  initIncomingReports();
-}
+// Auto-run if element exists on regular page load
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('incomingReportsContainer') || document.getElementById('reportsBody')) {
+    initIncomingReports();
+  }
+});

@@ -175,11 +175,9 @@ require_once __DIR__ . '/../inc/sidebar_respondant.php';
                   <th class="sorted" data-sort="id">Report ID <i data-lucide="arrow-down"></i></th>
                   <th data-sort="type">Type <i data-lucide="arrow-down"></i></th>
                   <th data-sort="location">Location <i data-lucide="arrow-down"></i></th>
-                  <th data-sort="received">Received <i data-lucide="arrow-down"></i></th>
+                  <th data-sort="receive">Receive <i data-lucide="arrow-down"></i></th>
                   <th data-sort="resolved">Resolved <i data-lucide="arrow-down"></i></th>
                   <th data-sort="duration">Duration <i data-lucide="arrow-down"></i></th>
-                  <th data-sort="priority">Priority <i data-lucide="arrow-down"></i></th>
-                  <th data-sort="status">Status <i data-lucide="arrow-down"></i></th>
                   <th>Actions</th>
                 </tr>
               </thead>

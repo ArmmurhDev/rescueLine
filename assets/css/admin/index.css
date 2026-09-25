@@ -141,14 +141,22 @@ ul {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 4px 8px 24px;
+  padding: 4px 6px 20px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 20px;
 }
 
+.brand-img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 10px;
+}
+
 .brand-logo {
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   border-radius: 10px;
   background: linear-gradient(135deg, var(--green), #006b3f);
   display: flex;
@@ -166,15 +174,16 @@ ul {
 }
 
 .brand-text h1 {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 800;
   letter-spacing: 0.5px;
+  line-height: 1.2;
 }
 
 .brand-text p {
   font-size: 11px;
   color: var(--muted);
-  margin-top: 2px;
+  margin-top: 3px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -786,7 +795,7 @@ ul {
    ========================================================= */
 .grid-2 {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 20px;
   margin-bottom: 24px;
 }
@@ -803,6 +812,8 @@ ul {
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .card-header {
@@ -990,14 +1001,16 @@ ul {
 }
 
 .chart-wrap.donut {
-  height: 340px;
+  height: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .chart-wrap.line {
-  height: 320px;
+  flex: 1;
+  min-height: 280px;
+  height: 100%;
 }
 
 /* Type legend (for donut) */
@@ -1039,6 +1052,7 @@ ul {
   font-weight: 500;
 }
 
+.legend-val,
 .legend-value {
   font-size: 13px;
   font-weight: 700;

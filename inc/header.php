@@ -1,23 +1,5 @@
 <?php
-/**
- * RescueLine - Reusable Header Component
- * Handles secure session startup, security headers, metadata, fonts, and base stylesheets.
- */
-
-// 1. Secure Session Initialization
-if (session_status() === PHP_SESSION_NONE) {
-    // Set secure session cookie parameters before starting session
-    $is_secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $is_secure,
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-    session_start();
-}
+require_once __DIR__ . '/config.php';
 
 // 2. HTTP Security Headers
 if (!headers_sent()) {

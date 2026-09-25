@@ -1,161 +1,10 @@
 /**
- * RescueLine - Report Details Script
- * Handles incident monitoring, live timers, step actions, and display area rendering.
+ * RescueLine - Report Details Script (Real-time DB Connection)
+ * Handles incident monitoring, live timers, database status mutations, timeline notes, and display area rendering.
  */
 
 (function() {
-  /* =========================================================
-     MOCK REPORTS REPOSITORY
-     ========================================================= */
-  const INCIDENT_DATABASE = {
-    'RL-0025': {
-      id: 'RL-0025',
-      type: 'Fire',
-      location: 'Kaduna South Market',
-      state: 'Kaduna South LGA, Kaduna State',
-      phone: '08031234219',
-      displayPhone: '0803***4219',
-      reportedAt: 'Today, 11:42 AM',
-      lastUpdate: '2 minutes ago',
-      reportedVia: 'USSD *123#',
-      priority: 'critical',
-      status: 'on-scene',
-      elapsed: 863, // seconds (14:23)
-      currentStep: 2, // 0: Accepted, 1: Dispatched, 2: On Scene, 3: Resolved
-      assignedTo: {
-        name: 'Musa Ibrahim',
-        role: 'Fire Unit Lead',
-        initials: 'MI'
-      },
-      notes: [
-        { isCritical: true, text: 'Market area densely populated. Immediate evacuation required.' },
-        { text: 'Fire started ~10 mins before report. Multiple stalls involved. No casualties reported yet.', author: 'Musa Ibrahim', time: '2 min ago' }
-      ]
-    },
-    'RL-0024': {
-      id: 'RL-0024',
-      type: 'Accident',
-      location: 'Zaria City, Katsina Road',
-      state: 'Zaria LGA, Kaduna State',
-      phone: '08123456789',
-      displayPhone: '0812***4455',
-      reportedAt: 'Today, 11:34 AM',
-      lastUpdate: '5 minutes ago',
-      reportedVia: 'USSD *123#',
-      priority: 'critical',
-      status: 'in-progress',
-      elapsed: 1520,
-      currentStep: 2,
-      assignedTo: {
-        name: 'Amina Bello',
-        role: 'Medical Team Lead',
-        initials: 'AB'
-      },
-      notes: [
-        { isCritical: true, text: 'Multiple vehicle collision involving 2 mini-buses.' },
-        { text: 'Medical unit on scene administering first aid to injured passengers.', author: 'Amina Bello', time: '5 min ago' }
-      ]
-    },
-    'RL-0023': {
-      id: 'RL-0023',
-      type: 'Medical',
-      location: 'Chikun LGA, Ganawuri',
-      state: 'Chikun LGA, Kaduna State',
-      phone: '07055566778',
-      displayPhone: '0705***8822',
-      reportedAt: 'Today, 11:27 AM',
-      lastUpdate: '8 minutes ago',
-      reportedVia: 'USSD *123#',
-      priority: 'high',
-      status: 'dispatched',
-      elapsed: 2340,
-      currentStep: 1,
-      assignedTo: {
-        name: 'Yusuf Danladi',
-        role: 'Paramedic',
-        initials: 'YD'
-      },
-      notes: [
-        { text: 'Patient suffering severe respiratory distress. Ambulance en route.', author: 'Yusuf Danladi', time: '8 min ago' }
-      ]
-    },
-    'RL-0021': {
-      id: 'RL-0021',
-      type: 'Security',
-      location: 'Sabon Tasha, Kaduna',
-      state: 'Chikun LGA, Kaduna State',
-      phone: '08061112233',
-      displayPhone: '0806***3344',
-      reportedAt: 'Today, 11:05 AM',
-      lastUpdate: '12 minutes ago',
-      reportedVia: 'USSD *123#',
-      priority: 'high',
-      status: 'in-progress',
-      elapsed: 3600,
-      currentStep: 2,
-      assignedTo: {
-        name: 'Fatima Ahmed',
-        role: 'Security Officer',
-        initials: 'FA'
-      },
-      notes: [
-        { text: 'Civil disturbance reported near junction. Local patrol secured perimeter.', author: 'Fatima Ahmed', time: '12 min ago' }
-      ]
-    },
-    'RL-0020': {
-      id: 'RL-0020',
-      type: 'Flood',
-      location: 'Kawo Area, Kaduna',
-      state: 'Kaduna North LGA, Kaduna State',
-      phone: '09093334455',
-      displayPhone: '0909***1177',
-      reportedAt: 'Today, 10:52 AM',
-      lastUpdate: '18 minutes ago',
-      reportedVia: 'USSD *123#',
-      priority: 'normal',
-      status: 'on-scene',
-      elapsed: 4800,
-      currentStep: 2,
-      assignedTo: {
-        name: 'Sani Mohammed',
-        role: 'Rescue Team',
-        initials: 'SM'
-      },
-      notes: [
-        { text: 'Drainage overflow causing street flooding. Diverting traffic.', author: 'Sani Mohammed', time: '18 min ago' }
-      ]
-    }
-  };
-
-  function getReportData(id) {
-    if (INCIDENT_DATABASE[id]) {
-      return INCIDENT_DATABASE[id];
-    }
-    // Dynamic fallback for any unseen ID
-    return {
-      id: id || 'RL-0025',
-      type: 'Fire',
-      location: 'Kaduna Central',
-      state: 'Kaduna State',
-      phone: '08031234219',
-      displayPhone: '0803***4219',
-      reportedAt: 'Today, 11:42 AM',
-      lastUpdate: 'Just now',
-      reportedVia: 'USSD *123#',
-      priority: 'high',
-      status: 'in-progress',
-      elapsed: 600,
-      currentStep: 2,
-      assignedTo: {
-        name: 'Musa Ibrahim',
-        role: 'Respondent',
-        initials: 'MI'
-      },
-      notes: [
-        { text: 'Incident under active investigation by regional responders.', author: 'System', time: 'Just now' }
-      ]
-    };
-  }
+  'use strict';
 
   function getIconForType(type) {
     const map = {
@@ -165,7 +14,22 @@
       'Flood': 'waves',
       'Security': 'shield-alert'
     };
-    return map[type] || 'alert-circle';
+    if (!type) return 'alert-circle';
+    for (const key in map) {
+      if (type.toLowerCase().includes(key.toLowerCase())) return map[key];
+    }
+    return 'alert-circle';
+  }
+
+  function getTypeClass(type) {
+    if (!type) return 'other';
+    const t = type.toLowerCase();
+    if (t.includes('fire')) return 'fire';
+    if (t.includes('accident')) return 'accident';
+    if (t.includes('medical')) return 'medical';
+    if (t.includes('flood')) return 'flood';
+    if (t.includes('security')) return 'security';
+    return 'other';
   }
 
   function formatTimer(seconds) {
@@ -192,30 +56,76 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
+  function formatDateTime(d) {
+    if (!d) return '—';
+    const date = new Date(d);
+    return isNaN(date.getTime()) ? d : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function formatTimeOnly(d) {
+    if (!d) return '—';
+    const date = new Date(d);
+    return isNaN(date.getTime()) ? d : date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  }
+
   /* =========================================================
-     HTML TEMPLATE GENERATOR
+     HTML TEMPLATE GENERATOR FROM DB RECORD
      ========================================================= */
-  window.getReportDetailsHTML = function(id) {
-    const r = getReportData(id);
-    const typeClass = (r.type || 'fire').toLowerCase();
-    const typeIcon = getIconForType(r.type);
-    const isUrgent = r.elapsed > 1800 || r.priority === 'critical';
+  window.getReportDetailsHTML = function(reportData, timelineData) {
+    const r = reportData || {};
+    const timeline = timelineData || [];
+
+    const dbId = r.id || 1;
+    const reportCode = r.report_code || r.reportCode || ('RL-' + dbId);
+    const categoryName = r.category_name || r.type || 'Emergency';
+    const typeClass = getTypeClass(categoryName);
+    const typeIcon = getIconForType(categoryName);
+    const priority = (r.priority || 'medium').toLowerCase();
+    const status = (r.status || 'pending').toLowerCase();
+
+    // Calculate Step
+    let currentStep = 0;
+    if (status === 'assigned') {
+      currentStep = 1;
+    } else if (status === 'responding' || status === 'in-progress' || status === 'on-scene') {
+      currentStep = 2;
+    } else if (status === 'resolved' || status === 'closed') {
+      currentStep = 3;
+    }
+
+    // Elapsed Time calculation
+    let elapsed = 0;
+    if (r.created_at) {
+      const start = new Date(r.created_at).getTime();
+      const end = r.resolved_at ? new Date(r.resolved_at).getTime() : Date.now();
+      elapsed = Math.max(0, Math.floor((end - start) / 1000));
+    }
+    const isUrgent = (elapsed > 1800 || priority === 'critical');
+
+    const phone = r.reporter_phone || r.reporter || '08000000000';
+    const displayPhone = phone.length > 7 ? phone.substring(0, 4) + '***' + phone.substring(phone.length - 4) : phone;
+    const locationStr = r.address_landmark || r.landmark || 'Incident Location';
+    const regionStr = [r.lga, r.state].filter(Boolean).join(', ') || 'Nigeria';
+
+    const respName = r.respondent_name || r.assignedRespondent || 'Responder Team';
+    const respRole = r.respondent_unit || 'Emergency Unit';
+    const respInitials = respName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'RT';
 
     // Step definitions
     const steps = [
-      { name: 'Accepted', icon: 'check', desc: 'Report acknowledged by respondent', time: '11:45 AM' },
-      { name: 'Dispatched', icon: 'truck', desc: 'Emergency response team dispatched to location', time: '11:48 AM' },
-      { name: 'On Scene', icon: 'map-pin', desc: 'Response team arrived at incident location', time: 'In Progress' },
-      { name: 'Resolved', icon: 'flag', desc: 'Emergency situation resolved and closed', time: 'Pending' }
+      { name: 'Accepted', icon: 'check', desc: 'Report logged and acknowledged', time: r.created_at ? formatTimeOnly(r.created_at) : '—' },
+      { name: 'Dispatched', icon: 'truck', desc: 'Emergency response unit assigned', time: r.assigned_at ? formatTimeOnly(r.assigned_at) : (currentStep >= 1 ? 'Dispatched' : 'Pending') },
+      { name: 'On Scene', icon: 'map-pin', desc: 'Response team arrived at location', time: r.responding_at ? formatTimeOnly(r.responding_at) : (currentStep >= 2 ? 'In Progress' : 'Pending') },
+      { name: 'Resolved', icon: 'flag', desc: 'Emergency situation contained and resolved', time: r.resolved_at ? formatTimeOnly(r.resolved_at) : (currentStep >= 3 ? 'Completed' : 'Pending') }
     ];
 
     const stepsHtml = steps.map((s, idx) => {
       let stateClass = 'pending';
       let iconName = s.icon;
-      if (idx < r.currentStep) {
+      if (idx < currentStep) {
         stateClass = 'completed';
         iconName = 'check';
-      } else if (idx === r.currentStep) {
+      } else if (idx === currentStep) {
         stateClass = 'current';
       }
 
@@ -235,27 +145,26 @@
       `;
     }).join('');
 
-    const notesHtml = (r.notes || []).map(n => {
-      if (n.isCritical) {
-        return `
-          <div class="rd-note-critical">
-            <i data-lucide="alert-circle"></i>
-            <div>
-              <strong>Critical:</strong> ${escapeHTML(n.text)}
-            </div>
-          </div>
-        `;
-      }
-      return `
+    // Timeline / Notes list
+    let notesHtml = '';
+    if (timeline && timeline.length > 0) {
+      notesHtml = timeline.map(t => `
         <div class="rd-note-item">
-          <p>${escapeHTML(n.text)}</p>
-          <div class="rd-note-meta">- ${escapeHTML(n.author || 'Respondent')}, ${escapeHTML(n.time || 'recently')}</div>
+          <p><strong>${escapeHTML(t.action)}:</strong> ${escapeHTML(t.note || 'No description.')}</p>
+          <div class="rd-note-meta">- ${escapeHTML(t.user_name || 'System')}, ${formatDateTime(t.created_at)}</div>
+        </div>
+      `).join('');
+    } else {
+      notesHtml = `
+        <div class="rd-note-item">
+          <p>Report initiated and waiting for responder actions.</p>
+          <div class="rd-note-meta">- System, Just now</div>
         </div>
       `;
-    }).join('');
+    }
 
     return `
-      <div class="rd-container" id="reportDetailsContainer" data-report-id="${escapeHTML(r.id)}">
+      <div class="rd-container" id="reportDetailsContainer" data-report-id="${dbId}" data-report-code="${escapeHTML(reportCode)}">
 
         <!-- ACTION BAR -->
         <div class="rd-action-bar">
@@ -265,19 +174,19 @@
           </button>
 
           <div class="rd-action-buttons">
-            <button type="button" id="btnDispatch" class="rd-btn rd-btn-dispatch" ${r.currentStep > 1 ? 'disabled' : ''}>
+            <button type="button" id="btnDispatch" class="rd-btn rd-btn-dispatch" ${currentStep >= 1 ? 'disabled' : ''}>
               <i data-lucide="truck"></i>
               <span>Dispatch</span>
             </button>
-            <button type="button" id="btnOnScene" class="rd-btn rd-btn-onscene" ${r.currentStep >= 2 ? 'disabled' : ''}>
+            <button type="button" id="btnOnScene" class="rd-btn rd-btn-onscene" ${currentStep >= 2 ? 'disabled' : ''}>
               <i data-lucide="map-pin"></i>
               <span>On Scene</span>
             </button>
-            <button type="button" id="btnResolve" class="rd-btn rd-btn-resolve" ${r.currentStep >= 3 ? 'disabled' : ''}>
+            <button type="button" id="btnResolve" class="rd-btn rd-btn-resolve" ${currentStep >= 3 ? 'disabled' : ''}>
               <i data-lucide="check-circle-2"></i>
               <span>Resolve</span>
             </button>
-            <button type="button" id="btnEscalate" class="rd-btn rd-btn-escalate">
+            <button type="button" id="btnEscalate" class="rd-btn rd-btn-escalate" ${currentStep >= 3 ? 'disabled' : ''}>
               <i data-lucide="alert-triangle"></i>
               <span>Escalate</span>
             </button>
@@ -288,19 +197,19 @@
         <div class="rd-header-card">
           <div class="rd-header-main">
             <div class="rd-id-row">
-              <span class="rd-id">${escapeHTML(r.id)}</span>
-              <span class="rd-priority-badge ${escapeHTML(r.priority)}">${escapeHTML(capitalize(r.priority))}</span>
+              <span class="rd-id">${escapeHTML(reportCode)}</span>
+              <span class="rd-priority-badge ${escapeHTML(priority)}">${escapeHTML(capitalize(priority))}</span>
             </div>
             <div class="rd-type-badge ${escapeHTML(typeClass)}">
               <i data-lucide="${escapeHTML(typeIcon)}"></i>
-              <span>${escapeHTML(r.type)} Emergency</span>
+              <span>${escapeHTML(categoryName)}</span>
             </div>
           </div>
 
           <div class="rd-timer-box">
-            <div class="rd-timer-label">Elapsed Time</div>
-            <div id="rdTimer" class="rd-timer-val ${isUrgent ? 'urgent' : ''}" data-seconds="${r.elapsed}">
-              ${formatTimer(r.elapsed)}
+            <div class="rd-timer-label">${currentStep >= 3 ? 'Total Response Duration' : 'Elapsed Time'}</div>
+            <div id="rdTimer" class="rd-timer-val ${isUrgent ? 'urgent' : ''}" data-seconds="${elapsed}" data-status="${escapeHTML(status)}">
+              ${formatTimer(elapsed)}
             </div>
           </div>
         </div>
@@ -334,14 +243,14 @@
               </div>
               <div class="rd-location-body">
                 <div class="rd-loc-item">
-                  <div class="rd-loc-label">Address</div>
-                  <div class="rd-loc-val">${escapeHTML(r.location)}</div>
+                  <div class="rd-loc-label">Address / Landmark</div>
+                  <div class="rd-loc-val">${escapeHTML(locationStr)}</div>
                 </div>
                 <div class="rd-loc-item">
-                  <div class="rd-loc-label">Region</div>
-                  <div class="rd-loc-val" style="font-weight: 500; font-size: 13px; color: var(--text-soft);">${escapeHTML(r.state)}</div>
+                  <div class="rd-loc-label">State & LGA</div>
+                  <div class="rd-loc-val" style="font-weight: 500; font-size: 13px; color: var(--text-soft);">${escapeHTML(regionStr)}</div>
                 </div>
-                <button type="button" class="rd-btn-maps" onclick="window.open('https://maps.google.com/?q=${encodeURIComponent(r.location + ', ' + r.state)}', '_blank')">
+                <button type="button" class="rd-btn-maps" onclick="window.open('https://maps.google.com/?q=${encodeURIComponent(locationStr + ', ' + regionStr)}', '_blank')">
                   <i data-lucide="navigation"></i>
                   <span>Open in Maps</span>
                 </button>
@@ -363,17 +272,17 @@
               </div>
               <div class="rd-contact-box">
                 <div class="rd-phone-row">
-                  <a href="tel:${escapeHTML(r.phone)}" class="rd-phone-num">${escapeHTML(r.displayPhone)}</a>
-                  <button type="button" class="rd-copy-btn" id="rdCopyPhone" data-phone="${escapeHTML(r.phone)}" title="Copy phone number">
+                  <a href="tel:${escapeHTML(phone)}" class="rd-phone-num">${escapeHTML(displayPhone)}</a>
+                  <button type="button" class="rd-copy-btn" id="rdCopyPhone" data-phone="${escapeHTML(phone)}" title="Copy phone number">
                     <i data-lucide="copy"></i>
                   </button>
                 </div>
                 <div class="rd-contact-actions">
-                  <a href="tel:${escapeHTML(r.phone)}" class="rd-contact-btn call">
+                  <a href="tel:${escapeHTML(phone)}" class="rd-contact-btn call">
                     <i data-lucide="phone-call"></i>
                     <span>Call</span>
                   </a>
-                  <a href="sms:${escapeHTML(r.phone)}" class="rd-contact-btn sms">
+                  <a href="sms:${escapeHTML(phone)}" class="rd-contact-btn sms">
                     <i data-lucide="message-square"></i>
                     <span>SMS</span>
                   </a>
@@ -392,25 +301,25 @@
               <div class="rd-detail-list">
                 <div class="rd-detail-item">
                   <span class="rd-detail-label">Reported At</span>
-                  <span class="rd-detail-val">${escapeHTML(r.reportedAt)}</span>
-                </div>
-                <div class="rd-detail-item">
-                  <span class="rd-detail-label">Last Updated</span>
-                  <span class="rd-detail-val">${escapeHTML(r.lastUpdate)}</span>
+                  <span class="rd-detail-val">${formatDateTime(r.created_at)}</span>
                 </div>
                 <div class="rd-detail-item">
                   <span class="rd-detail-label">Reported Via</span>
-                  <span class="rd-detail-val">${escapeHTML(r.reportedVia)}</span>
+                  <span class="rd-detail-val">${escapeHTML((r.source || 'ussd').toUpperCase())} Gateway</span>
                 </div>
                 <div class="rd-detail-item">
-                  <span class="rd-detail-label">Assigned To</span>
+                  <span class="rd-detail-label">Assigned Responder</span>
                   <div class="rd-assigned-chip">
-                    <div class="rd-assigned-avatar">${escapeHTML(r.assignedTo.initials)}</div>
+                    <div class="rd-assigned-avatar">${escapeHTML(respInitials)}</div>
                     <div class="rd-assigned-info">
-                      <span class="rd-assigned-name">${escapeHTML(r.assignedTo.name)}</span>
-                      <span class="rd-assigned-role">${escapeHTML(r.assignedTo.role)}</span>
+                      <span class="rd-assigned-name">${escapeHTML(respName)}</span>
+                      <span class="rd-assigned-role">${escapeHTML(respRole)}</span>
                     </div>
                   </div>
+                </div>
+                <div class="rd-detail-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+                  <span class="rd-detail-label">Description / Situation</span>
+                  <p style="font-size: 13px; color: var(--text-main); margin: 0; line-height: 1.5;">${escapeHTML(r.description || 'No additional details provided.')}</p>
                 </div>
               </div>
             </div>
@@ -420,7 +329,7 @@
               <div class="rd-card-header">
                 <div class="rd-card-title">
                   <i data-lucide="file-text"></i>
-                  <span>Incident Notes</span>
+                  <span>Incident Timeline & Notes</span>
                 </div>
               </div>
               <div class="rd-notes-list" id="rdNotesList">
@@ -447,7 +356,7 @@
   };
 
   /* =========================================================
-     INTERACTION LOGIC
+     INTERACTION LOGIC & DATABASE MUTATIONS
      ========================================================= */
   function showToast(msg) {
     const toast = document.getElementById('rdToast');
@@ -463,10 +372,13 @@
     }, 3000);
   }
 
-  function initReportDetails(reportId) {
+  function initReportDetails(reportDbId) {
     if (typeof lucide !== 'undefined' && lucide.createIcons) {
       lucide.createIcons();
     }
+
+    const container = document.getElementById('reportDetailsContainer');
+    const numericId = reportDbId || (container ? container.getAttribute('data-report-id') : 1);
 
     // Live Timer
     if (window._rdTimerInterval) {
@@ -474,15 +386,20 @@
     }
     const timerEl = document.getElementById('rdTimer');
     if (timerEl) {
+      const currentStatus = (timerEl.getAttribute('data-status') || '').toLowerCase();
       let secs = parseInt(timerEl.getAttribute('data-seconds'), 10) || 0;
-      window._rdTimerInterval = setInterval(() => {
-        secs += 1;
-        timerEl.setAttribute('data-seconds', secs);
-        timerEl.textContent = formatTimer(secs);
-        if (secs > 1800 && !timerEl.classList.contains('urgent')) {
-          timerEl.classList.add('urgent');
-        }
-      }, 1000);
+
+      // Only increment timer if not resolved
+      if (currentStatus !== 'resolved' && currentStatus !== 'closed') {
+        window._rdTimerInterval = setInterval(() => {
+          secs += 1;
+          timerEl.setAttribute('data-seconds', secs);
+          timerEl.textContent = formatTimer(secs);
+          if (secs > 1800 && !timerEl.classList.contains('urgent')) {
+            timerEl.classList.add('urgent');
+          }
+        }, 1000);
+      }
     }
 
     // Back Button
@@ -492,55 +409,125 @@
         e.preventDefault();
         const urlParams = new URLSearchParams(window.location.search);
         const mode = urlParams.get('mode');
-        if (mode === 'history' && window.RescueNav && typeof window.RescueNav.displayResponseHistoryContent === 'function') {
-          window.RescueNav.displayResponseHistoryContent();
-        } else if (mode === 'history') {
+        if (mode === 'history') {
           window.location.href = 'response-history.php';
-        } else if (window.RescueNav && typeof window.RescueNav.displayActiveResponsesContent === 'function') {
-          window.RescueNav.displayActiveResponsesContent();
         } else if (document.referrer && document.referrer.includes('incorming-report')) {
           window.location.href = 'incorming-report.php';
+        } else if (document.referrer && document.referrer.includes('response-history')) {
+          window.location.href = 'response-history.php';
+        } else if (document.referrer && document.referrer.includes('dashboard')) {
+          window.location.href = 'dashboard.php';
         } else {
           window.location.href = 'active-responses.php';
         }
       });
     }
 
-    // Action Buttons
+    // Action Buttons (dispatch, on-scene, resolve, escalate)
     const btnDispatch = document.getElementById('btnDispatch');
     const btnOnScene = document.getElementById('btnOnScene');
     const btnResolve = document.getElementById('btnResolve');
     const btnEscalate = document.getElementById('btnEscalate');
 
     if (btnDispatch) {
-      btnDispatch.addEventListener('click', () => {
-        showToast('Dispatch team notified and in transit');
-        btnDispatch.disabled = true;
-        if (btnOnScene) btnOnScene.disabled = false;
+      btnDispatch.addEventListener('click', async () => {
+        const formData = new FormData();
+        formData.append('action', 'update_status');
+        formData.append('report_id', numericId);
+        formData.append('status', 'responding');
+        formData.append('notes', 'Dispatch team notified and actively en route to scene.');
+
+        try {
+          const res = await fetch('../api/reports.php', { method: 'POST', body: formData });
+          const json = await res.json();
+          if (json.status === 'success') {
+            showToast('Dispatch team notified and in transit');
+            btnDispatch.disabled = true;
+            if (btnOnScene) btnOnScene.disabled = false;
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            showToast(json.message || 'Error updating status');
+          }
+        } catch (err) {
+          showToast('Network error updating dispatch.');
+        }
       });
     }
 
     if (btnOnScene) {
-      btnOnScene.addEventListener('click', () => {
-        showToast('Status updated: Responders arrived On Scene');
-        btnOnScene.disabled = true;
+      btnOnScene.addEventListener('click', async () => {
+        const formData = new FormData();
+        formData.append('action', 'add_note');
+        formData.append('report_id', numericId);
+        formData.append('action_name', 'Arrived On Scene');
+        formData.append('note', 'Responders arrived at the emergency scene and started intervention.');
+
+        try {
+          const res = await fetch('../api/reports.php', { method: 'POST', body: formData });
+          const json = await res.json();
+          if (json.status === 'success') {
+            showToast('Status updated: Responders arrived On Scene');
+            btnOnScene.disabled = true;
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            showToast(json.message || 'Error updating status');
+          }
+        } catch (err) {
+          showToast('Network error.');
+        }
       });
     }
 
     if (btnResolve) {
-      btnResolve.addEventListener('click', () => {
-        if (confirm('Mark this incident as resolved and close active response?')) {
-          showToast('Incident marked as Resolved');
-          btnResolve.disabled = true;
-          if (btnEscalate) btnEscalate.disabled = true;
+      btnResolve.addEventListener('click', async () => {
+        const note = prompt('Enter resolution summary for this incident:');
+        if (note === null) return;
+
+        const formData = new FormData();
+        formData.append('action', 'update_status');
+        formData.append('report_id', numericId);
+        formData.append('status', 'resolved');
+        formData.append('notes', note || 'Incident successfully contained and resolved on scene.');
+
+        try {
+          const res = await fetch('../api/reports.php', { method: 'POST', body: formData });
+          const json = await res.json();
+          if (json.status === 'success') {
+            showToast('Incident marked as Resolved');
+            btnResolve.disabled = true;
+            if (btnEscalate) btnEscalate.disabled = true;
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            showToast(json.message || 'Error resolving incident');
+          }
+        } catch (err) {
+          showToast('Network error.');
         }
       });
     }
 
     if (btnEscalate) {
-      btnEscalate.addEventListener('click', () => {
-        if (confirm('Escalate this incident to higher emergency command?')) {
-          showToast('Incident escalated to Regional Command');
+      btnEscalate.addEventListener('click', async () => {
+        const reason = prompt('Enter reason for escalating this emergency:');
+        if (reason === null) return;
+
+        const formData = new FormData();
+        formData.append('action', 'add_note');
+        formData.append('report_id', numericId);
+        formData.append('action_name', 'Emergency Escalated');
+        formData.append('note', 'Escalated to Regional Command Center: ' + (reason || 'Immediate reinforcements requested'));
+
+        try {
+          const res = await fetch('../api/reports.php', { method: 'POST', body: formData });
+          const json = await res.json();
+          if (json.status === 'success') {
+            showToast('Incident escalated to Regional Command');
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            showToast(json.message || 'Error escalating incident');
+          }
+        } catch (err) {
+          showToast('Network error.');
         }
       });
     }
@@ -560,86 +547,79 @@
 
     // Add Note
     const addNoteBtn = document.getElementById('rdAddNoteBtn');
-    const notesList = document.getElementById('rdNotesList');
-    if (addNoteBtn && notesList) {
-      addNoteBtn.addEventListener('click', () => {
+    if (addNoteBtn) {
+      addNoteBtn.addEventListener('click', async () => {
         const noteText = prompt('Enter a new note for this incident:');
-        if (noteText && noteText.trim()) {
-          const noteDiv = document.createElement('div');
-          noteDiv.className = 'rd-note-item';
-          noteDiv.innerHTML = `
-            <p>${escapeHTML(noteText.trim())}</p>
-            <div class="rd-note-meta">- You, Just now</div>
-          `;
-          notesList.appendChild(noteDiv);
-          showToast('Incident note added');
+        if (!noteText || !noteText.trim()) return;
+
+        const formData = new FormData();
+        formData.append('action', 'add_note');
+        formData.append('report_id', numericId);
+        formData.append('action_name', 'Field Note');
+        formData.append('note', noteText.trim());
+
+        try {
+          const res = await fetch('../api/reports.php', { method: 'POST', body: formData });
+          const json = await res.json();
+          if (json.status === 'success') {
+            showToast('Incident note recorded');
+            const notesList = document.getElementById('rdNotesList');
+            if (notesList) {
+              const noteDiv = document.createElement('div');
+              noteDiv.className = 'rd-note-item';
+              noteDiv.innerHTML = `
+                <p><strong>Field Note:</strong> ${escapeHTML(noteText.trim())}</p>
+                <div class="rd-note-meta">- You, Just now</div>
+              `;
+              notesList.appendChild(noteDiv);
+            }
+          } else {
+            showToast(json.message || 'Error recording note');
+          }
+        } catch (err) {
+          showToast('Network error.');
         }
       });
     }
   }
 
   /* =========================================================
-     GLOBAL VIEW DISPLAY IN CONTENT AREA
+     GLOBAL VIEW DISPLAY IN CONTENT AREA (AJAX/SPA Support)
      ========================================================= */
-  window.displayReportDetails = function(reportId) {
+  window.displayReportDetails = async function(reportId) {
     const target = document.querySelector('.content');
     if (!target) {
-      window.location.href = `report-details.php?id=${encodeURIComponent(reportId || 'RL-0025')}`;
+      window.location.href = `report-details.php?id=${encodeURIComponent(reportId || '')}`;
       return;
     }
 
-    // 1. Ensure report-details.css is loaded
-    if (!document.getElementById('css-report-details')) {
-      const link = document.createElement('link');
-      link.id = 'css-report-details';
-      link.rel = 'stylesheet';
-      link.href = '../assets/css/respondant/report-details.css';
-      document.head.appendChild(link);
+    try {
+      const res = await fetch(`../api/reports.php?action=get&id=${encodeURIComponent(reportId || '')}`);
+      const json = await res.json();
+      if (json.status === 'success' && json.data && json.data.report) {
+        const report = json.data.report;
+        const timeline = json.data.timeline || [];
+
+        target.innerHTML = window.getReportDetailsHTML(report, timeline);
+
+        // Update Topnav Title
+        const pageTitleH2 = document.querySelector('.page-title h2');
+        if (pageTitleH2) pageTitleH2.textContent = `Incident Details: ${report.report_code || ('RL-' + report.id)}`;
+
+        initReportDetails(report.id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+    } catch (e) {
+      console.warn('Fallback to full page navigation:', e);
     }
 
-    // 2. Render HTML into display area
-    const id = reportId || 'RL-0025';
-    target.innerHTML = window.getReportDetailsHTML(id);
-
-    // 3. Update topnav title
-    const pageTitleH2 = document.querySelector('.page-title h2');
-    const pageTitleP = document.querySelector('.page-title p');
-    if (pageTitleH2) pageTitleH2.textContent = `Incident Details: ${id}`;
-    if (pageTitleP) pageTitleP.textContent = 'Monitor response progress, reporter info, and actions in real-time';
-
-    // 4. Update URL without full refresh
-    try {
-      window.history.pushState({ page: 'report_details', id: id }, '', `report-details.php?id=${encodeURIComponent(id)}`);
-    } catch (e) {}
-
-    // 5. Initialize interaction logic
-    initReportDetails(id);
-
-    // Scroll to top of content
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.location.href = `report-details.php?id=${encodeURIComponent(reportId || '')}`;
   };
 
   // Export handlers
   window.initReportDetails = initReportDetails;
-
-  // Global override for window.viewReport across the application
   window.viewReport = function(id) {
     window.displayReportDetails(id);
   };
-
-  // Auto-run if already on report-details.php directly
-  document.addEventListener('DOMContentLoaded', () => {
-    const container = document.getElementById('reportDetailsContainer');
-    if (container) {
-      const id = container.getAttribute('data-report-id') || 'RL-0025';
-      initReportDetails(id);
-    }
-  });
-
-  // Immediate check if DOM is already ready
-  const container = document.getElementById('reportDetailsContainer');
-  if (container) {
-    const id = container.getAttribute('data-report-id') || 'RL-0025';
-    initReportDetails(id);
-  }
 })();

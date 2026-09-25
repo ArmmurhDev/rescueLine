@@ -177,32 +177,7 @@ require_once __DIR__ . '/../inc/sidebar_respondant.php';
               <button type="button" class="icon-btn-small" title="Reset filters" id="resetFilters">
                 <i data-lucide="rotate-ccw"></i>
               </button>
-              <button type="button" class="icon-btn-small" title="More filters">
-                <i data-lucide="sliders-horizontal"></i>
-              </button>
             </div>
-          </div>
-        </div>
-
-        <!-- BULK ACTIONS -->
-        <div class="bulk-actions" id="bulkActions">
-          <div class="bulk-info">
-            <i data-lucide="check-square"></i>
-            <span id="selectedCount">0 reports selected</span>
-          </div>
-          <div class="bulk-actions-buttons">
-            <button type="button" class="bulk-btn bulk-btn-accept">
-              <i data-lucide="check-circle"></i>
-              Accept Selected
-            </button>
-            <button type="button" class="bulk-btn bulk-btn-assign">
-              <i data-lucide="user-plus"></i>
-              Assign
-            </button>
-            <button type="button" class="bulk-btn bulk-btn-clear" id="clearSelection">
-              <i data-lucide="x"></i>
-              Clear
-            </button>
           </div>
         </div>
 
@@ -212,11 +187,11 @@ require_once __DIR__ . '/../inc/sidebar_respondant.php';
             <table class="reports-table">
               <thead>
                 <tr>
-                  <th><input type="checkbox" id="selectAll" /></th>
                   <th>Report ID</th>
                   <th>Emergency Type</th>
                   <th>Location</th>
-                  <th>Reporter</th>
+                  <th>Receive</th>
+                  <th>Priority</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -225,26 +200,6 @@ require_once __DIR__ . '/../inc/sidebar_respondant.php';
           </div>
 
           <div class="report-cards" id="reportCards"></div>
-
-          <!-- PAGINATION -->
-          <div class="pagination-bar">
-            <div class="pagination-info">
-              Showing <strong>1-10</strong> of <strong>47</strong> reports
-            </div>
-            <div class="pagination-controls">
-              <button type="button" class="page-btn" disabled>
-                <i data-lucide="chevron-left"></i>
-              </button>
-              <button type="button" class="page-btn active">1</button>
-              <button type="button" class="page-btn">2</button>
-              <button type="button" class="page-btn">3</button>
-              <button type="button" class="page-btn">4</button>
-              <button type="button" class="page-btn">5</button>
-              <button type="button" class="page-btn">
-                <i data-lucide="chevron-right"></i>
-              </button>
-            </div>
-          </div>
         </div>
 
       </div>

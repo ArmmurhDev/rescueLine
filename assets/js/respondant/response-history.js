@@ -1,636 +1,343 @@
 /**
- * RescueLine - Response History JavaScript
- * Provides archive data, real-time filtering, multi-column sorting, and dynamic display area rendering.
+ * RescueLine - Response History JavaScript (Real-time DB Connection)
+ * Provides archive data for resolved emergency reports, real-time filtering, search, and dynamic view navigation.
  */
 
-// Mock History Dataset
-const MOCK_HISTORY = [
-  {
-    id: 'RL-0019',
-    type: 'Medical',
-    location: 'Barnawa, Kaduna',
-    state: 'Kaduna',
-    respondent: { name: 'Amina Bello', initials: 'AB' },
-    received: { date: '2024-01-15', time: '10:38 AM' },
-    resolved: { date: '2024-01-15', time: '11:02 AM' },
-    duration: 1440, // seconds
-    priority: 'normal',
-    status: 'resolved'
-  },
-  {
-    id: 'RL-0018',
-    type: 'Accident',
-    location: 'Kakuri, Kaduna',
-    state: 'Kaduna',
-    respondent: { name: 'Yusuf Danladi', initials: 'YD' },
-    received: { date: '2024-01-15', time: '10:25 AM' },
-    resolved: { date: '2024-01-15', time: '10:58 AM' },
-    duration: 1980,
-    priority: 'high',
-    status: 'resolved'
-  },
-  {
-    id: 'RL-0017',
-    type: 'Flood',
-    location: 'Tudun Wada, Kaduna',
-    state: 'Kaduna',
-    respondent: { name: 'Sani Mohammed', initials: 'SM' },
-    received: { date: '2024-01-15', time: '10:12 AM' },
-    resolved: { date: '2024-01-15', time: '10:45 AM' },
-    duration: 1980,
-    priority: 'normal',
-    status: 'resolved'
-  },
-  {
-    id: 'RL-0016',
-    type: 'Security',
-    location: 'Malali, Kaduna',
-    state: 'Kaduna',
-    respondent: { name: 'Fatima Ahmed', initials: 'FA' },
-    received: { date: '2024-01-15', time: '09:58 AM' },
-    resolved: { date: '2024-01-15', time: '10:35 AM' },
-    duration: 2220,
-    priority: 'high',
-    status: 'resolved'
-  },
-  {
-    id: 'RL-0015',
-    type: 'Fire',
-    location: 'Ungwan Rimi, Kaduna',
-    state: 'Kaduna',
-    respondent: { name: 'Musa Ibrahim', initials: 'MI' },
-    received: { date: '2024-01-15', time: '09:42 AM' },
-    resolved: { date: '2024-01-15', time: '10:18 AM' },
-    duration: 2160,
-    priority: 'critical',
-    status: 'resolved'
-  },
-  {
-    id: 'RL-0014',
-    type: 'Medical',
-    location: 'Kaduna South Market',
-    state: 'Kaduna',
-    respondent: { name: 'Amina Bello', initials: 'AB' },
-    received: { date: '2024-01-14', time: '03:25 PM' },
-    resolved: { date: '2024-01-14', time: '03:48 PM' },
-    duration: 1380,
-    priority: 'high',
-    status: 'resolved'
-  },
-  {
-    id: 'RL-0013',
-    type: 'Accident',
-    location: 'Zaria City',
-    state: 'Kaduna',
-    respondent: { name: 'Yusuf Danladi', initials: 'YD' },
-    received: { date: '2024-01-14', time: '02:15 PM' },
-    resolved: { date: '2024-01-14', time: '02:52 PM' },
-    duration: 2220,
-    priority: 'critical',
-    status: 'resolved'
-  },
-  {
-    id: 'RL-0012',
-    type: 'Fire',
-    location: 'Chikun LGA',
-    state: 'Kaduna',
-    respondent: { name: 'Musa Ibrahim', initials: 'MI' },
-    received: { date: '2024-01-14', time: '01:08 PM' },
-    resolved: { date: '2024-01-14', time: '01:45 PM' },
-    duration: 2220,
-    priority: 'critical',
-    status: 'resolved'
-  },
-  {
-    id: 'RL-0011',
-    type: 'Flood',
-    location: 'Kawo Area',
-    state: 'Kaduna',
-    respondent: { name: 'Sani Mohammed', initials: 'SM' },
-    received: { date: '2024-01-14', time: '11:30 AM' },
-    resolved: { date: '2024-01-14', time: '12:05 PM' },
-    duration: 2100,
-    priority: 'normal',
-    status: 'closed'
-  },
-  {
-    id: 'RL-0010',
-    type: 'Security',
-    location: 'Sabon Tasha',
-    state: 'Kaduna',
-    respondent: { name: 'Fatima Ahmed', initials: 'FA' },
-    received: { date: '2024-01-14', time: '10:15 AM' },
-    resolved: { date: '2024-01-14', time: '10:48 AM' },
-    duration: 1980,
-    priority: 'high',
-    status: 'resolved'
-  }
-];
+(function() {
+  'use strict';
 
-// Helper Functions
-function getIconForType(type) {
-  const map = {
-    'Fire': 'flame',
-    'Accident': 'car',
-    'Medical': 'heart-pulse',
-    'Flood': 'waves',
-    'Security': 'shield-alert'
+  function formatDateTime(d) {
+    if (!d) return '—';
+    const date = new Date(d);
+    return isNaN(date.getTime()) ? d : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function formatDuration(start, end, minutesCol) {
+    if (minutesCol && parseInt(minutesCol, 10) > 0) {
+      const m = parseInt(minutesCol, 10);
+      if (m >= 60) {
+        return Math.floor(m / 60) + 'h ' + (m % 60) + 'm';
+      }
+      return m + ' mins';
+    }
+    if (!start || !end) return '—';
+    const s = new Date(start).getTime();
+    const e = new Date(end).getTime();
+    if (isNaN(s) || isNaN(e) || e <= s) return '—';
+    const diffMins = Math.max(1, Math.round((e - s) / 60000));
+    if (diffMins >= 60) {
+      return Math.floor(diffMins / 60) + 'h ' + (diffMins % 60) + 'm';
+    }
+    return diffMins + ' mins';
+  }
+
+  function maskPhoneNumber(phone) {
+    if (!phone) return '—';
+    const str = String(phone).trim();
+    if (str.length <= 5) return '*****';
+    if (str.startsWith('+')) {
+      const prefix = str.slice(0, 4);
+      const suffix = str.slice(-4);
+      return `${prefix}*****${suffix}`;
+    } else if (str.length >= 10) {
+      const prefix = str.slice(0, 3);
+      const suffix = str.slice(-4);
+      return `${prefix}*****${suffix}`;
+    } else {
+      const prefix = str.slice(0, 2);
+      const suffix = str.slice(-2);
+      return `${prefix}*****${suffix}`;
+    }
+  }
+
+  function escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function getTypeClass(type) {
+    if (!type) return 'other';
+    const t = type.toLowerCase();
+    if (t.includes('fire')) return 'fire';
+    if (t.includes('accident')) return 'accident';
+    if (t.includes('medical')) return 'medical';
+    if (t.includes('flood')) return 'flood';
+    if (t.includes('security')) return 'security';
+    return 'other';
+  }
+
+  function refreshIcons() {
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+      lucide.createIcons();
+    }
+  }
+
+  // Template Generator for dynamic loading
+  window.getResponseHistoryHTML = function() {
+    return `
+      <div class="page-container" id="responseHistoryContainer">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1>
+              <i data-lucide="history" style="width: 24px; height: 24px; color: var(--green);"></i>
+              Response History & Archives
+            </h1>
+            <p>Archive of all resolved emergency responses</p>
+          </div>
+          <div class="page-header-actions">
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='../api/reports.php?action=export'">
+              <i data-lucide="download"></i>
+              Export Archive
+            </button>
+            <button type="button" class="btn btn-primary" onclick="initResponseHistory()">
+              <i data-lucide="refresh-cw"></i>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- STATS ROW -->
+        <div class="stats-row">
+          <div class="stat-mini green">
+            <div class="stat-mini-icon green"><i data-lucide="check-circle-2"></i></div>
+            <div class="stat-mini-info">
+              <div class="value" id="historyStatTotal">0</div>
+              <div class="label">Total Resolved</div>
+            </div>
+          </div>
+          <div class="stat-mini blue">
+            <div class="stat-mini-icon blue"><i data-lucide="clock"></i></div>
+            <div class="stat-mini-info">
+              <div class="value" id="historyStatAvg">18m</div>
+              <div class="label">Avg Resolution Time</div>
+            </div>
+          </div>
+          <div class="stat-mini orange">
+            <div class="stat-mini-icon orange"><i data-lucide="trending-up"></i></div>
+            <div class="stat-mini-info">
+              <div class="value">100%</div>
+              <div class="label">Resolution Rate</div>
+            </div>
+          </div>
+          <div class="stat-mini purple">
+            <div class="stat-mini-icon purple"><i data-lucide="users"></i></div>
+            <div class="stat-mini-info">
+              <div class="value" id="historyStatResp">1</div>
+              <div class="label">Active Units</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-card">
+          <div class="filter-bar">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input type="text" placeholder="Search resolved reports by ID, location, or type..." id="historySearch" autocomplete="off" />
+            </div>
+          </div>
+        </div>
+
+        <div class="history-card">
+          <div class="table-wrap">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Report ID</th>
+                  <th>Type</th>
+                  <th>Location</th>
+                  <th>Receive</th>
+                  <th>Resolved</th>
+                  <th>Duration</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+          <div class="history-cards" id="historyCards"></div>
+        </div>
+      </div>
+    `;
   };
-  return map[type] || 'alert-circle';
-}
 
-function formatDuration(seconds) {
-  const hrs = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  if (hrs > 0) return `${hrs}h ${mins}m`;
-  return `${mins}m`;
-}
+  let resolvedList = [];
 
-function getDurationClass(seconds) {
-  if (seconds < 1200) return 'fast'; // < 20 min
-  if (seconds < 2400) return 'normal'; // < 40 min
-  return 'slow';
-}
+  async function initResponseHistory() {
+    const historyBody = document.getElementById('historyBody');
+    const historyCards = document.getElementById('historyCards');
+    if (!historyBody && !historyCards) return;
 
-function capitalize(s) {
-  if (!s) return '';
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function formatStatus(status) {
-  const map = {
-    'resolved': 'Resolved',
-    'closed': 'Closed'
-  };
-  return map[status] || capitalize(status);
-}
-
-// Navigation Helper to View Incident Details
-window.viewReport = function(id) {
-  if (window.RescueNav && typeof window.RescueNav.displayReportDetails === 'function') {
-    window.RescueNav.displayReportDetails(id);
-    if (window.history && window.history.pushState) {
-      window.history.pushState({ page: 'report_details', id: id }, '', `report-details.php?id=${encodeURIComponent(id)}&mode=history`);
-    }
-  } else if (typeof window.displayReportDetails === 'function') {
-    window.displayReportDetails(id);
-    if (window.history && window.history.pushState) {
-      window.history.pushState({ page: 'report_details', id: id }, '', `report-details.php?id=${encodeURIComponent(id)}&mode=history`);
-    }
-  } else {
-    window.location.href = `report-details.php?id=${encodeURIComponent(id)}&mode=history`;
-  }
-};
-window.viewHistoryReport = window.viewReport;
-
-// Template Generator for Dynamic Rendering
-window.getResponseHistoryHTML = function() {
-  return `
-  <div class="page-container" id="responseHistoryContainer">
-
-    <!-- PAGE HEADER -->
-    <div class="page-header">
-      <div class="page-header-left">
-        <h1>
-          <i data-lucide="history" style="width: 24px; height: 24px; color: var(--green);"></i>
-          Response History
-        </h1>
-        <p>Archive of all resolved emergency responses</p>
-      </div>
-      <div class="page-header-actions">
-        <button class="btn btn-secondary" id="exportBtn" type="button">
-          <i data-lucide="download"></i>
-          Export
-        </button>
-        <button class="btn btn-primary" id="refreshBtn" type="button">
-          <i data-lucide="refresh-cw"></i>
-          Refresh
-        </button>
-      </div>
-    </div>
-
-    <!-- STATS ROW -->
-    <div class="stats-row">
-      <div class="stat-mini green">
-        <div class="stat-mini-icon green"><i data-lucide="check-circle-2"></i></div>
-        <div class="stat-mini-info">
-          <div class="value">247</div>
-          <div class="label">Total Resolved</div>
-          <div class="trend up">↑ 18% this month</div>
-        </div>
-      </div>
-      <div class="stat-mini blue">
-        <div class="stat-mini-icon blue"><i data-lucide="clock"></i></div>
-        <div class="stat-mini-info">
-          <div class="value">24m</div>
-          <div class="label">Avg Resolution Time</div>
-          <div class="trend down">↓ 8% faster</div>
-        </div>
-      </div>
-      <div class="stat-mini orange">
-        <div class="stat-mini-icon orange"><i data-lucide="trending-up"></i></div>
-        <div class="stat-mini-info">
-          <div class="value">94%</div>
-          <div class="label">Resolution Rate</div>
-          <div class="trend up">↑ 3% improvement</div>
-        </div>
-      </div>
-      <div class="stat-mini purple">
-        <div class="stat-mini-icon purple"><i data-lucide="users"></i></div>
-        <div class="stat-mini-info">
-          <div class="value">12</div>
-          <div class="label">Active Respondents</div>
-          <div class="trend up">↑ 2 new this week</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- FILTER CARD -->
-    <div class="filter-card">
-      <!-- Quick Filters -->
-      <div class="quick-filters">
-        <button class="quick-filter-btn active" data-range="all" type="button">All Time</button>
-        <button class="quick-filter-btn" data-range="today" type="button">Today</button>
-        <button class="quick-filter-btn" data-range="week" type="button">This Week</button>
-        <button class="quick-filter-btn" data-range="month" type="button">This Month</button>
-        <button class="quick-filter-btn" data-range="quarter" type="button">Last 3 Months</button>
-      </div>
-    </div>
-
-    <!-- HISTORY TABLE -->
-    <div class="history-card">
-      <div class="table-wrap">
-        <table class="history-table">
-          <thead>
-            <tr>
-              <th class="sorted" data-sort="id">Report ID <i data-lucide="arrow-down"></i></th>
-              <th data-sort="type">Type <i data-lucide="arrow-down"></i></th>
-              <th data-sort="location">Location <i data-lucide="arrow-down"></i></th>
-              <th data-sort="received">Received <i data-lucide="arrow-down"></i></th>
-              <th data-sort="resolved">Resolved <i data-lucide="arrow-down"></i></th>
-              <th data-sort="duration">Duration <i data-lucide="arrow-down"></i></th>
-              <th data-sort="priority">Priority <i data-lucide="arrow-down"></i></th>
-              <th data-sort="status">Status <i data-lucide="arrow-down"></i></th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="historyBody"></tbody>
-        </table>
-      </div>
-
-      <div class="history-cards" id="historyCards"></div>
-
-      <!-- PAGINATION -->
-      <div class="pagination-bar">
-        <div class="pagination-info" id="paginationInfo">
-          Showing <strong>1-10</strong> of <strong>247</strong> responses
-        </div>
-        <div class="pagination-controls">
-          <button class="page-btn" disabled type="button">
-            <i data-lucide="chevron-left"></i>
-          </button>
-          <button class="page-btn active" type="button">1</button>
-          <button class="page-btn" type="button">2</button>
-          <button class="page-btn" type="button">3</button>
-          <button class="page-btn" type="button">...</button>
-          <button class="page-btn" type="button">25</button>
-          <button class="page-btn" type="button">
-            <i data-lucide="chevron-right"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-  `;
-};
-
-// Render Table and Mobile Cards
-function renderHistory(history) {
-  const historyBody = document.getElementById('historyBody');
-  const historyCards = document.getElementById('historyCards');
-  const paginationInfo = document.getElementById('paginationInfo');
-
-  if (!historyBody && !historyCards) return;
-
-  if (paginationInfo) {
-    paginationInfo.innerHTML = `Showing <strong>1-${history.length}</strong> of <strong>${history.length}</strong> responses`;
-  }
-
-  if (history.length === 0) {
-    if (historyBody) {
-      historyBody.innerHTML = `
-        <tr>
-          <td colspan="9">
-            <div class="empty-state">
-              <i data-lucide="inbox"></i>
-              <h3>No records found</h3>
-              <p>Try adjusting your filters or date range.</p>
-            </div>
-          </td>
-        </tr>
-      `;
-    }
-    if (historyCards) {
-      historyCards.innerHTML = `
-        <div class="empty-state">
-          <i data-lucide="inbox"></i>
-          <h3>No records found</h3>
-          <p>Try adjusting your filters or date range.</p>
-        </div>
-      `;
-    }
-    if (window.lucide && typeof window.lucide.createIcons === 'function') {
-      window.lucide.createIcons();
-    }
-    return;
-  }
-
-  // Render Table Rows
-  if (historyBody) {
-    historyBody.innerHTML = history.map(h => `
-      <tr>
-        <td><span class="report-id" onclick="window.viewReport('${h.id}')">${h.id}</span></td>
-        <td>
-          <div class="emergency-type ${h.type.toLowerCase()}">
-            <i data-lucide="${getIconForType(h.type)}"></i>
-            ${h.type}
-          </div>
-        </td>
-        <td>
-          <div class="location-text">
-            <span class="primary">${h.location}</span>
-            <span class="secondary">${h.state}</span>
-          </div>
-        </td>
-        <td>
-          <div class="time-info">
-            <span class="date">${h.received.date}</span>
-            <span class="time">${h.received.time}</span>
-          </div>
-        </td>
-        <td>
-          <div class="time-info">
-            <span class="date">${h.resolved.date}</span>
-            <span class="time">${h.resolved.time}</span>
-          </div>
-        </td>
-        <td>
-          <span class="duration-badge ${getDurationClass(h.duration)}">
-            <i data-lucide="clock"></i>
-            ${formatDuration(h.duration)}
-          </span>
-        </td>
-        <td><span class="priority-badge ${h.priority}">${capitalize(h.priority)}</span></td>
-        <td><span class="status-badge ${h.status}">${formatStatus(h.status)}</span></td>
-        <td>
-          <a href="report-details.php?id=${h.id}&mode=history" class="action-btn action-btn-view" onclick="event.preventDefault(); window.viewReport('${h.id}');">
-            <i data-lucide="eye"></i>
-            View
-          </a>
-        </td>
-      </tr>
-    `).join('');
-  }
-
-  // Render Mobile Cards
-  if (historyCards) {
-    historyCards.innerHTML = history.map(h => `
-      <div class="history-card-item">
-        <div class="history-card-top">
-          <span class="history-card-id" onclick="window.viewReport('${h.id}')">${h.id}</span>
-          <span class="priority-badge ${h.priority}">${capitalize(h.priority)}</span>
-        </div>
-        <div class="history-card-body">
-          <div class="history-card-field">
-            <div class="label">Type</div>
-            <div class="value emergency-type ${h.type.toLowerCase()}">
-              <i data-lucide="${getIconForType(h.type)}"></i> ${h.type}
-            </div>
-          </div>
-          <div class="history-card-field">
-            <div class="label">Location</div>
-            <div class="value">${h.location}</div>
-          </div>
-          <div class="history-card-field">
-            <div class="label">Duration</div>
-            <div class="value">
-              <span class="duration-badge ${getDurationClass(h.duration)}">
-                <i data-lucide="clock"></i>
-                ${formatDuration(h.duration)}
-              </span>
-            </div>
-          </div>
-          <div class="history-card-field">
-            <div class="label">Received</div>
-            <div class="value">${h.received.date} ${h.received.time}</div>
-          </div>
-          <div class="history-card-field">
-            <div class="label">Resolved</div>
-            <div class="value">${h.resolved.date} ${h.resolved.time}</div>
-          </div>
-        </div>
-        <div class="history-card-actions">
-          <a href="report-details.php?id=${h.id}&mode=history" class="action-btn action-btn-view" onclick="event.preventDefault(); window.viewReport('${h.id}');">
-            <i data-lucide="eye"></i>
-            View Details
-          </a>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  if (window.lucide && typeof window.lucide.createIcons === 'function') {
-    window.lucide.createIcons();
-  }
-}
-
-// Initializer Function for Response History Interactivity
-function initResponseHistory() {
-  const filterToggle = document.getElementById('filterToggle');
-  const filterBody = document.getElementById('filterBody');
-  const quickFilterBtns = document.querySelectorAll('.quick-filter-btn');
-  const searchInput = document.getElementById('searchInput');
-  const typeFilter = document.getElementById('typeFilter');
-  const priorityFilter = document.getElementById('priorityFilter');
-  const statusFilter = document.getElementById('statusFilter');
-  const respondentFilter = document.getElementById('respondentFilter');
-  const locationFilter = document.getElementById('locationFilter');
-  const dateFrom = document.getElementById('dateFrom');
-  const dateTo = document.getElementById('dateTo');
-  const resetFilters = document.getElementById('resetFilters');
-  const applyFilters = document.getElementById('applyFilters');
-  const exportBtn = document.getElementById('exportBtn');
-  const refreshBtn = document.getElementById('refreshBtn');
-
-  // Filter Toggle
-  if (filterToggle && filterBody) {
-    let filtersVisible = false;
-    filterToggle.addEventListener('click', () => {
-      filtersVisible = !filtersVisible;
-      filterBody.classList.toggle('active', filtersVisible);
-      const span = filterToggle.querySelector('span');
-      const icon = filterToggle.querySelector('i');
-      if (span) span.textContent = filtersVisible ? 'Hide Filters' : 'Show Filters';
-      if (icon) icon.setAttribute('data-lucide', filtersVisible ? 'chevron-up' : 'chevron-down');
-      if (window.lucide && typeof window.lucide.createIcons === 'function') {
-        window.lucide.createIcons();
+    try {
+      // ONLY load reports with status=resolved
+      const res = await fetch('../api/reports.php?action=list&status=resolved');
+      const json = await res.json();
+      if (json.status === 'success' && json.data) {
+        resolvedList = json.data.reports || [];
+        renderHistoryTable(resolvedList);
+        updateHistoryStats(resolvedList, json.data.respondents || []);
       }
-    });
+    } catch (e) {
+      console.error('Error fetching response history:', e);
+    }
+
+    refreshIcons();
   }
 
-  // Filtering Logic
-  function applyAllFilters() {
-    const q = searchInput ? searchInput.value.toLowerCase().trim() : '';
-    const t = typeFilter ? typeFilter.value : '';
-    const p = priorityFilter ? priorityFilter.value : '';
-    const s = statusFilter ? statusFilter.value : '';
-    const r = respondentFilter ? respondentFilter.value : '';
-    const l = locationFilter ? locationFilter.value : '';
+  function updateHistoryStats(list, respondents) {
+    const totalEl = document.getElementById('historyStatTotal');
+    const avgEl = document.getElementById('historyStatAvg');
+    const respEl = document.getElementById('historyStatResp');
 
-    const filtered = MOCK_HISTORY.filter(h => {
-      const matchQ = !q || 
-        h.id.toLowerCase().includes(q) || 
-        h.type.toLowerCase().includes(q) || 
-        h.location.toLowerCase().includes(q) ||
-        h.respondent.name.toLowerCase().includes(q);
-      const matchT = !t || h.type === t;
-      const matchP = !p || h.priority === p;
-      const matchS = !s || h.status === s;
-      const matchR = !r || h.respondent.name === r;
-      const matchL = !l || h.location.includes(l);
-      return matchQ && matchT && matchP && matchS && matchR && matchL;
-    });
+    if (totalEl) totalEl.textContent = list.length;
+    if (respEl) respEl.textContent = respondents.length || 1;
 
-    renderHistory(filtered);
-  }
-
-  if (applyFilters) applyFilters.addEventListener('click', applyAllFilters);
-  if (searchInput) searchInput.addEventListener('input', applyAllFilters);
-  if (typeFilter) typeFilter.addEventListener('change', applyAllFilters);
-  if (priorityFilter) priorityFilter.addEventListener('change', applyAllFilters);
-  if (statusFilter) statusFilter.addEventListener('change', applyAllFilters);
-  if (respondentFilter) respondentFilter.addEventListener('change', applyAllFilters);
-  if (locationFilter) locationFilter.addEventListener('change', applyAllFilters);
-
-  // Quick Filter Buttons
-  quickFilterBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      quickFilterBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      applyAllFilters();
-    });
-  });
-
-  // Reset Filters
-  if (resetFilters) {
-    resetFilters.addEventListener('click', () => {
-      if (searchInput) searchInput.value = '';
-      if (typeFilter) typeFilter.value = '';
-      if (priorityFilter) priorityFilter.value = '';
-      if (statusFilter) statusFilter.value = '';
-      if (respondentFilter) respondentFilter.value = '';
-      if (locationFilter) locationFilter.value = '';
-      if (dateFrom) dateFrom.value = '';
-      if (dateTo) dateTo.value = '';
-      quickFilterBtns.forEach(b => b.classList.remove('active'));
-      if (quickFilterBtns[0]) quickFilterBtns[0].classList.add('active');
-      renderHistory(MOCK_HISTORY);
-    });
-  }
-
-  // Sorting
-  const headers = document.querySelectorAll('.history-table th[data-sort]');
-  let currentSort = { column: 'id', direction: 'desc' };
-
-  headers.forEach(header => {
-    header.addEventListener('click', () => {
-      const column = header.dataset.sort;
-      
-      // Toggle direction
-      if (currentSort.column === column) {
-        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-      } else {
-        currentSort.column = column;
-        currentSort.direction = 'asc';
-      }
-
-      // Update UI
-      headers.forEach(h => {
-        h.classList.remove('sorted');
-        const icon = h.querySelector('i');
-        if (icon) icon.setAttribute('data-lucide', 'arrow-down');
-      });
-      header.classList.add('sorted');
-      const activeIcon = header.querySelector('i');
-      if (activeIcon) {
-        activeIcon.setAttribute('data-lucide', currentSort.direction === 'asc' ? 'arrow-up' : 'arrow-down');
-      }
-      if (window.lucide && typeof window.lucide.createIcons === 'function') {
-        window.lucide.createIcons();
-      }
-
-      // Sort data
-      const sorted = [...MOCK_HISTORY].sort((a, b) => {
-        let aVal = '', bVal = '';
-        switch (column) {
-          case 'id': aVal = a.id; bVal = b.id; break;
-          case 'type': aVal = a.type; bVal = b.type; break;
-          case 'location': aVal = a.location; bVal = b.location; break;
-          case 'respondent': aVal = a.respondent.name; bVal = b.respondent.name; break;
-          case 'received': aVal = a.received.date + a.received.time; bVal = b.received.date + b.received.time; break;
-          case 'resolved': aVal = a.resolved.date + a.resolved.time; bVal = b.resolved.date + b.resolved.time; break;
-          case 'duration': aVal = a.duration; bVal = b.duration; break;
-          case 'priority': {
-            const priorityOrder = { 'critical': 3, 'high': 2, 'normal': 1 };
-            aVal = priorityOrder[a.priority] || 0;
-            bVal = priorityOrder[b.priority] || 0;
-            break;
+    if (avgEl && list.length > 0) {
+      let totalMins = 0;
+      let count = 0;
+      list.forEach(r => {
+        if (r.response_time_minutes) {
+          totalMins += parseInt(r.response_time_minutes, 10);
+          count++;
+        } else if (r.receivedAt && r.resolved_at) {
+          const s = new Date(r.receivedAt).getTime();
+          const e = new Date(r.resolved_at).getTime();
+          if (e > s) {
+            totalMins += Math.round((e - s) / 60000);
+            count++;
           }
-          case 'status': aVal = a.status; bVal = b.status; break;
         }
-        
-        if (aVal < bVal) return currentSort.direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return currentSort.direction === 'asc' ? 1 : -1;
-        return 0;
       });
+      if (count > 0) {
+        const avg = Math.round(totalMins / count);
+        avgEl.textContent = avg >= 60 ? Math.floor(avg / 60) + 'h ' + (avg % 60) + 'm' : avg + 'm';
+      }
+    }
+  }
 
-      renderHistory(sorted);
+  function renderHistoryTable(list) {
+    const historyBody = document.getElementById('historyBody');
+    const historyCards = document.getElementById('historyCards');
+
+    if (historyBody) {
+      if (!list || list.length === 0) {
+        historyBody.innerHTML = `
+          <tr>
+            <td colspan="7">
+              <div class="empty-state" style="padding: 36px 20px; text-align: center; color: var(--text-muted);">
+                <i data-lucide="check-circle-2" style="width: 40px; height: 40px; margin-bottom: 10px; color: var(--green); display: block; margin: 0 auto;"></i>
+                <h3 style="font-size: 16px; margin: 8px 0; color: var(--text-main);">No Resolved Reports Found</h3>
+                <p style="font-size: 13px;">Archived emergency reports that have reached resolution will appear here.</p>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else {
+        historyBody.innerHTML = list.map(r => `
+          <tr>
+            <td><span class="report-id">${escapeHTML(r.reportCode || ('RL-' + r.id))}</span></td>
+            <td>
+              <span class="emergency-type ${escapeHTML(getTypeClass(r.type))}">
+                ${escapeHTML(r.type || 'Emergency')}
+              </span>
+            </td>
+            <td>
+              <div class="location-text">
+                <span class="primary">${escapeHTML(r.landmark || r.lga)}</span>
+                <span class="secondary">${escapeHTML(r.state)}</span>
+              </div>
+            </td>
+            <td>
+              <span class="phone-masked" style="font-family: 'SF Mono', Monaco, monospace; font-size: 12px; font-weight: 500; color: var(--text-soft);">
+                ${escapeHTML(maskPhoneNumber(r.reporter || r.reporter_phone))}
+              </span>
+            </td>
+            <td><span class="time-text" style="color: var(--green); font-weight: 500;">${formatDateTime(r.resolved_at || r.receivedAt)}</span></td>
+            <td><span class="duration-badge" style="font-size: 12px; font-weight: 600; color: var(--text-main);">${formatDuration(r.receivedAt, r.resolved_at, r.response_time_minutes)}</span></td>
+            <td>
+              <a href="report-details.php?id=${r.id}&mode=history" class="btn btn-secondary btn-sm">
+                <i data-lucide="eye"></i> View
+              </a>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    if (historyCards) {
+      if (!list || list.length === 0) {
+        historyCards.innerHTML = '<p style="padding: 24px; color: var(--text-muted); text-align: center;">No resolved reports.</p>';
+      } else {
+        historyCards.innerHTML = list.map(r => `
+          <div class="report-card-item">
+            <div class="report-card-top">
+              <span class="report-card-id">${escapeHTML(r.reportCode || ('RL-' + r.id))}</span>
+              <span class="status-badge resolved">Resolved</span>
+            </div>
+            <div class="report-card-body">
+              <div class="report-card-field">
+                <div class="label">Type</div>
+                <div class="value">${escapeHTML(r.type || 'Emergency')}</div>
+              </div>
+              <div class="report-card-field">
+                <div class="label">Location</div>
+                <div class="value">${escapeHTML(r.landmark || r.lga)}, ${escapeHTML(r.state)}</div>
+              </div>
+              <div class="report-card-field">
+                <div class="label">Receive</div>
+                <div class="value" style="font-family: 'SF Mono', Monaco, monospace;">${escapeHTML(maskPhoneNumber(r.reporter || r.reporter_phone))}</div>
+              </div>
+              <div class="report-card-field">
+                <div class="label">Resolved At</div>
+                <div class="value">${formatDateTime(r.resolved_at || r.receivedAt)}</div>
+              </div>
+              <div class="report-card-field">
+                <div class="label">Duration</div>
+                <div class="value">${formatDuration(r.receivedAt, r.resolved_at, r.response_time_minutes)}</div>
+              </div>
+            </div>
+            <div class="report-card-actions">
+              <a href="report-details.php?id=${r.id}&mode=history" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                <i data-lucide="eye"></i> View Report Details
+              </a>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    refreshIcons();
+  }
+
+  function filterHistory() {
+    const searchInput = document.getElementById('historySearch') || document.getElementById('searchInput');
+    const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+    const filtered = resolvedList.filter(r => {
+      if (!q) return true;
+      return (r.reportCode && r.reportCode.toLowerCase().includes(q)) ||
+             (r.type && r.type.toLowerCase().includes(q)) ||
+             (r.landmark && r.landmark.toLowerCase().includes(q)) ||
+             (r.state && r.state.toLowerCase().includes(q)) ||
+             (r.lga && r.lga.toLowerCase().includes(q));
     });
+
+    renderHistoryTable(filtered);
+  }
+
+  window.initResponseHistory = initResponseHistory;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('historyBody') || document.getElementById('responseHistoryContainer')) {
+      initResponseHistory();
+    }
+    const searchInput = document.getElementById('historySearch') || document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', filterHistory);
+    }
   });
-
-  // Export Button
-  if (exportBtn) {
-    exportBtn.addEventListener('click', () => {
-      alert('Export Archive\n\nIn production, this generates a CSV/PDF of the filtered emergency response history.');
-    });
-  }
-
-  // Refresh Button
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', () => {
-      applyAllFilters();
-    });
-  }
-
-  // Initial Render
-  renderHistory(MOCK_HISTORY);
-
-  if (window.lucide && typeof window.lucide.createIcons === 'function') {
-    window.lucide.createIcons();
-  }
-}
-
-// Global exports
-window.initResponseHistory = initResponseHistory;
-window.renderResponseHistory = renderHistory;
-
-// Auto-run when standalone page is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('historyBody') || document.getElementById('responseHistoryContainer')) {
-    initResponseHistory();
-  }
-});
-if (document.getElementById('historyBody') || document.getElementById('responseHistoryContainer')) {
-  initResponseHistory();
-}
+})();

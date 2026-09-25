@@ -1,0 +1,22 @@
+[24-Sep-2026 06:31:02 Africa/Lagos] [RescueLine Query Exec Warning] SQLSTATE[21S01]: Insert value list does not match column list: 1136 Column count doesn't match value count at row 1 | SQL: INSERT INTO `categories` (`id`, `name`, `slug`, `description`, `icon`, `icon_class`, `color`, `prior
+[24-Sep-2026 06:31:02 Africa/Lagos] [RescueLine Query Exec Warning] SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`rescueline`.`reports`, CONSTRAINT `fk_reports_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL) | SQL: INSERT INTO `reports` (`id`, `report_code`, `category_id`, `category_name`, `source`, `reporter_name
+[24-Sep-2026 06:31:02 Africa/Lagos] [RescueLine] Database schema initialized successfully from db/schema.db.
+[24-Sep-2026 16:04:24 Africa/Lagos] [RescueLine] Real-time database schema sync completed successfully (Hash: 11c298a35d55ce45b6c3b2761ca244fbd688430f2138a6ce44a125e987cdb98c).
+[24-Sep-2026 16:08:38 Africa/Lagos] PHP Warning:  ini_set(): Session ini settings cannot be changed after headers have already been sent in C:\xampp\htdocs\RescueLine\inc\config.php on line 175
+[24-Sep-2026 16:08:38 Africa/Lagos] PHP Warning:  ini_set(): Session ini settings cannot be changed after headers have already been sent in C:\xampp\htdocs\RescueLine\inc\config.php on line 176
+[24-Sep-2026 16:08:38 Africa/Lagos] PHP Warning:  ini_set(): Session ini settings cannot be changed after headers have already been sent in C:\xampp\htdocs\RescueLine\inc\config.php on line 177
+[24-Sep-2026 16:08:38 Africa/Lagos] PHP Warning:  ini_set(): Session ini settings cannot be changed after headers have already been sent in C:\xampp\htdocs\RescueLine\inc\config.php on line 179
+[24-Sep-2026 16:08:38 Africa/Lagos] PHP Warning:  session_set_cookie_params(): Session cookie parameters cannot be changed after headers have already been sent in C:\xampp\htdocs\RescueLine\inc\config.php on line 187
+[24-Sep-2026 16:08:38 Africa/Lagos] PHP Warning:  session_start(): Session cannot be started after headers have already been sent in C:\xampp\htdocs\RescueLine\inc\config.php on line 190
+[24-Sep-2026 16:08:38 Africa/Lagos] PHP Warning:  Cannot modify header information - headers already sent by (output started at C:\Users\Armmurh Dev\.gemini\antigravity-ide\brain\2440c15a-3951-4b2e-94c5-01475957783b\scratch\test_ussd.php:10) in C:\xampp\htdocs\RescueLine\ussd\index.php on line 11
+[24-Sep-2026 16:08:38 Africa/Lagos] PHP Warning:  Cannot modify header information - headers already sent by (output started at C:\Users\Armmurh Dev\.gemini\antigravity-ide\brain\2440c15a-3951-4b2e-94c5-01475957783b\scratch\test_ussd.php:10) in C:\xampp\htdocs\RescueLine\ussd\index.php on line 11
+[24-Sep-2026 16:08:38 Africa/Lagos] PHP Warning:  Cannot modify header information - headers already sent by (output started at C:\Users\Armmurh Dev\.gemini\antigravity-ide\brain\2440c15a-3951-4b2e-94c5-01475957783b\scratch\test_ussd.php:10) in C:\xampp\htdocs\RescueLine\ussd\index.php on line 11
+[24-Sep-2026 16:08:38 Africa/Lagos] PHP Warning:  Cannot modify header information - headers already sent by (output started at C:\Users\Armmurh Dev\.gemini\antigravity-ide\brain\2440c15a-3951-4b2e-94c5-01475957783b\scratch\test_ussd.php:10) in C:\xampp\htdocs\RescueLine\ussd\index.php on line 11
+[24-Sep-2026 16:08:38 Africa/Lagos] PHP Warning:  Cannot modify header information - headers already sent by (output started at C:\Users\Armmurh Dev\.gemini\antigravity-ide\brain\2440c15a-3951-4b2e-94c5-01475957783b\scratch\test_ussd.php:10) in C:\xampp\htdocs\RescueLine\ussd\index.php on line 11
+[25-Sep-2026 05:11:28 Africa/Lagos] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'ticket_code' in 'field list' in C:\xampp\htdocs\RescueLine\inc\config.php:459
+Stack trace:
+#0 C:\xampp\htdocs\RescueLine\inc\config.php(459): PDO->prepare('INSERT INTO `re...')
+#1 C:\Users\Armmurh Dev\.gemini\antigravity-ide\brain\2440c15a-3951-4b2e-94c5-01475957783b\scratch\insert_test_report.php(25): db_insert('reports', Array)
+#2 {main}
+  thrown in C:\xampp\htdocs\RescueLine\inc\config.php on line 459
+[25-Sep-2026 09:14:14 Africa/Lagos] PHP Warning:  Cannot modify header information - headers already sent by (output started at C:\Users\Armmurh Dev\.gemini\antigravity-ide\brain\2440c15a-3951-4b2e-94c5-01475957783b\scratch\test_toggle.php:5) in C:\xampp\htdocs\RescueLine\api\dashboard.php on line 11

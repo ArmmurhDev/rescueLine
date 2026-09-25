@@ -1,12 +1,12 @@
 <?php
 /**
- * RescueLine - Admin Categories & Locations Management
+ * RescueLine - Admin Categories Management
  * Emergency Incident Reporting & Response Management
  */
 
 // Page Configuration
-$page_title       = 'RescueLine • Categories & Locations';
-$page_description = 'RescueLine - Emergency Incident Reporting Categories and Geographic Coverage';
+$page_title       = 'RescueLine • Emergency Categories';
+$page_description = 'RescueLine - Emergency Incident Reporting Categories Management';
 $active_page      = 'categories';
 $extra_css        = [
     '../assets/css/admin/index.css',
@@ -28,8 +28,8 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
           <i data-lucide="menu"></i>
         </button>
         <div class="page-title">
-          <h2>Categories & Locations</h2>
-          <p>Manage emergency categories, states, and LGAs</p>
+          <h2>Emergency Categories</h2>
+          <p>Manage incident categories and response types</p>
         </div>
       </div>
 
@@ -104,9 +104,12 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
       <!-- PAGE HEADER -->
       <div class="page-header">
         <div class="page-header-left">
-          <h1>Category & Location Management</h1>
-          <p>Manage emergency categories and the states and LGAs available throughout the Rescue Line reporting system.</p>
+          <h1>Emergency Categories</h1>
+          <p>Manage emergency incident categories, icons, and reporting classifications across the Rescue Line platform.</p>
         </div>
+        <button class="btn btn-primary" onclick="openAddCategory()">
+          <i data-lucide="plus"></i> Add Category
+        </button>
       </div>
 
       <!-- SUMMARY CARDS -->
@@ -114,55 +117,35 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
         <div class="summary-card green">
           <div class="summary-icon green"><i data-lucide="tags"></i></div>
           <div class="summary-info">
-            <div class="value" id="statTotalCat">6</div>
+            <div class="value" id="statTotalCat">0</div>
             <div class="label">Total Categories</div>
           </div>
         </div>
         <div class="summary-card blue">
           <div class="summary-icon blue"><i data-lucide="check-circle-2"></i></div>
           <div class="summary-info">
-            <div class="value" id="statActiveCat">5</div>
+            <div class="value" id="statActiveCat">0</div>
             <div class="label">Active Categories</div>
           </div>
         </div>
         <div class="summary-card orange">
-          <div class="summary-icon orange"><i data-lucide="map"></i></div>
+          <div class="summary-icon orange"><i data-lucide="pause-circle"></i></div>
           <div class="summary-info">
-            <div class="value" id="statStates">37</div>
-            <div class="label">Total States</div>
+            <div class="value" id="statInactiveCat">0</div>
+            <div class="label">Inactive Categories</div>
           </div>
         </div>
         <div class="summary-card purple">
-          <div class="summary-icon purple"><i data-lucide="map-pin"></i></div>
+          <div class="summary-icon purple"><i data-lucide="file-text"></i></div>
           <div class="summary-info">
-            <div class="value" id="statLgas">774</div>
-            <div class="label">Total LGAs</div>
+            <div class="value" id="statTotalReports">0</div>
+            <div class="label">Total Reports</div>
           </div>
         </div>
       </div>
 
-      <!-- USSD INFO PANEL -->
-      <div class="ussd-panel">
-        <div class="ussd-icon"><i data-lucide="smartphone"></i></div>
-        <div class="ussd-content">
-          <h4>USSD Location Data <span class="tag">Critical</span></h4>
-          <p>States and LGAs managed here are used to structure location options presented to users during emergency reporting via USSD (*123#). Changes made here will affect the available location options in the reporting system, respondent assignments, and geographic filters across the admin dashboard.</p>
-        </div>
-      </div>
-
-      <!-- EMERGENCY CATEGORIES SECTION -->
-      <div class="section-card">
-        <div class="section-header">
-          <div class="section-title">
-            <span class="dot"></span>
-            Emergency Categories
-            <span class="count" id="catCount">6</span>
-          </div>
-          <button class="btn btn-primary" onclick="openAddCategory()">
-            <i data-lucide="plus"></i> Add Category
-          </button>
-        </div>
-
+      <!-- FILTER BAR -->
+      <div class="filter-card">
         <div class="filter-bar">
           <div class="search-box">
             <i data-lucide="search"></i>
@@ -173,9 +156,20 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-          <button class="btn btn-ghost btn-sm" id="catClearBtn" onclick="clearCatFilters()" style="display: none;">
-            <i data-lucide="x"></i> Clear
+          <button class="clear-filters" id="catClearBtn" onclick="clearCatFilters()">
+            <i data-lucide="x"></i> Clear Filters
           </button>
+        </div>
+      </div>
+
+      <!-- TABLE CARD -->
+      <div class="table-card">
+        <div class="table-card-header">
+          <div class="table-card-title">
+            <span class="dot"></span>
+            Category Directory
+            <span class="count" id="catCount">0</span>
+          </div>
         </div>
 
         <div class="table-wrap">
@@ -193,105 +187,6 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
           </table>
         </div>
         <div class="data-cards" id="catCards"></div>
-      </div>
-
-      <!-- STATE & LGA MANAGEMENT SECTION -->
-      <div class="section-card">
-        <div class="section-header">
-          <div class="section-title">
-            <span class="dot"></span>
-            State & LGA Management
-          </div>
-        </div>
-
-        <div class="tabs">
-          <div class="tab active" data-tab="states" onclick="switchTab('states')">
-            <i data-lucide="map" style="width: 14px; height: 14px;"></i> States
-            <span class="tab-count" id="statesCount">37</span>
-          </div>
-          <div class="tab" data-tab="lgas" onclick="switchTab('lgas')">
-            <i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> LGAs
-            <span class="tab-count" id="lgasCount">774</span>
-          </div>
-        </div>
-
-        <!-- STATES TAB -->
-        <div class="tab-content" id="statesTab">
-          <div class="filter-bar">
-            <div class="search-box">
-              <i data-lucide="search"></i>
-              <input type="text" placeholder="Search states..." id="stateSearch" />
-            </div>
-            <select class="filter-select" id="stateStatusFilter">
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-            <button class="btn btn-ghost btn-sm" id="stateClearBtn" onclick="clearStateFilters()" style="display: none;">
-              <i data-lucide="x"></i> Clear
-            </button>
-            <button class="btn btn-primary btn-sm" onclick="openAddState()">
-              <i data-lucide="plus"></i> Add State
-            </button>
-          </div>
-
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>State Name</th>
-                  <th>State Code</th>
-                  <th>LGAs</th>
-                  <th>Reports</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="stateTableBody"></tbody>
-            </table>
-          </div>
-          <div class="data-cards" id="stateCards"></div>
-        </div>
-
-        <!-- LGAS TAB -->
-        <div class="tab-content" id="lgasTab" style="display: none;">
-          <div class="filter-bar">
-            <div class="search-box">
-              <i data-lucide="search"></i>
-              <input type="text" placeholder="Search LGAs..." id="lgaSearch" />
-            </div>
-            <select class="filter-select" id="lgaStateFilter">
-              <option value="">All States</option>
-            </select>
-            <select class="filter-select" id="lgaStatusFilter">
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-            <button class="btn btn-ghost btn-sm" id="lgaClearBtn" onclick="clearLgaFilters()" style="display: none;">
-              <i data-lucide="x"></i> Clear
-            </button>
-            <button class="btn btn-primary btn-sm" onclick="openAddLga()">
-              <i data-lucide="plus"></i> Add LGA
-            </button>
-          </div>
-
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>LGA Name</th>
-                  <th>State</th>
-                  <th>Reports</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="lgaTableBody"></tbody>
-            </table>
-          </div>
-          <div class="data-cards" id="lgaCards"></div>
-        </div>
       </div>
 
     </section>
@@ -319,7 +214,7 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
         </div>
         <div class="form-group">
           <label class="form-label">Description <span class="required">*</span></label>
-          <textarea class="form-textarea" id="catDescription" placeholder="Brief description..." required></textarea>
+          <textarea class="form-textarea" id="catDescription" placeholder="Brief description of this emergency type..." required></textarea>
           <div class="form-error" id="catDescError">Description is required</div>
         </div>
         <div class="form-group">
@@ -328,7 +223,7 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-          <div class="form-hint">Inactive categories won't appear in the USSD reporting menu.</div>
+          <div class="form-hint">Inactive categories won't appear in the reporting menus.</div>
         </div>
       </form>
     </div>
@@ -339,105 +234,24 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
   </div>
 </div>
 
-<!-- State Modal -->
-<div class="modal-overlay" id="stateModal">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-header-text">
-        <h3 id="stateModalTitle">Add New State</h3>
-        <p id="stateModalSubtitle">Add a new Nigerian state to the location database.</p>
-      </div>
-      <button class="modal-close" onclick="closeModal('stateModal')"><i data-lucide="x"></i></button>
-    </div>
-    <div class="modal-body">
-      <form id="stateForm" onsubmit="event.preventDefault(); saveState();">
-        <input type="hidden" id="stateId" />
-        <div class="form-group">
-          <label class="form-label">State Name <span class="required">*</span></label>
-          <input type="text" class="form-input" id="stateName" placeholder="e.g. Kaduna, Kano, Lagos" required />
-          <div class="form-error" id="stateNameError">State name is required</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">State Code <span class="required">*</span></label>
-          <input type="text" class="form-input" id="stateCode" placeholder="e.g. KD, KN, LA" maxlength="3" style="text-transform: uppercase;" required />
-          <div class="form-error" id="stateCodeError">State code is required (max 3 characters)</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Status</label>
-          <select class="form-select-input" id="stateStatus">
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('stateModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveState()"><i data-lucide="check"></i> <span id="stateSaveBtn">Save State</span></button>
-    </div>
-  </div>
-</div>
-
-<!-- LGA Modal -->
-<div class="modal-overlay" id="lgaModal">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-header-text">
-        <h3 id="lgaModalTitle">Add New LGA</h3>
-        <p id="lgaModalSubtitle">Add a new Local Government Area under a state.</p>
-      </div>
-      <button class="modal-close" onclick="closeModal('lgaModal')"><i data-lucide="x"></i></button>
-    </div>
-    <div class="modal-body">
-      <form id="lgaForm" onsubmit="event.preventDefault(); saveLga();">
-        <input type="hidden" id="lgaId" />
-        <div class="form-group">
-          <label class="form-label">LGA Name <span class="required">*</span></label>
-          <input type="text" class="form-input" id="lgaName" placeholder="e.g. Kaduna South, Zaria" required />
-          <div class="form-error" id="lgaNameError">LGA name is required</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Parent State <span class="required">*</span></label>
-          <select class="form-select-input" id="lgaState" required>
-            <option value="">Select state...</option>
-          </select>
-          <div class="form-error" id="lgaStateError">Please select a parent state</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Status</label>
-          <select class="form-select-input" id="lgaStatus">
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('lgaModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveLga()"><i data-lucide="check"></i> <span id="lgaSaveBtn">Save LGA</span></button>
-    </div>
-  </div>
-</div>
-
-<!-- Confirm Modal -->
+<!-- Confirm Delete Modal -->
 <div class="modal-overlay" id="confirmModal">
   <div class="modal" style="max-width: 440px;">
     <div class="modal-body" style="padding: 32px 24px;">
-      <div class="confirm-icon" id="confirmIconWrap"><i data-lucide="alert-triangle"></i></div>
+      <div class="confirm-icon danger" id="confirmIconWrap"><i data-lucide="alert-triangle"></i></div>
       <div class="confirm-text">
         <h3 id="confirmTitle">Confirm Action</h3>
-        <p id="confirmMessage"></p>
+        <p id="confirmMessage">Are you sure you want to proceed?</p>
       </div>
-      <div id="confirmWarningWrap"></div>
       <div class="confirm-footer">
         <button class="btn btn-secondary" onclick="closeModal('confirmModal')">Cancel</button>
-        <button class="btn" id="confirmActionBtn">Confirm</button>
+        <button class="btn btn-danger" id="confirmActionBtn">Confirm</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- TOAST -->
+<!-- TOAST NOTIFICATION -->
 <div class="toast" id="toast">
   <i data-lucide="check-circle"></i>
   <span id="toastMessage">Action completed</span>

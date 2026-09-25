@@ -148,41 +148,10 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
         </div>
       </div>
 
-      <!-- REPORTS BY STATE + REPORTS BY TYPE -->
+      <!-- REPORTS BY TYPE + RESPONSE TIME TREND (SIDE BY SIDE) -->
       <div class="grid-2">
 
-        <!-- REPORTS BY STATE -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="dot"></span>
-              Reports by State
-            </div>
-            <select class="filter-select">
-              <option>All Time</option>
-              <option>This Month</option>
-              <option>This Week</option>
-              <option>Today</option>
-            </select>
-          </div>
-          <div class="table-wrap">
-            <table class="state-table">
-              <thead>
-                <tr>
-                  <th>State</th>
-                  <th>Total</th>
-                  <th>Pending</th>
-                  <th>Responding</th>
-                  <th>Resolved</th>
-                  <th>Distribution</th>
-                </tr>
-              </thead>
-              <tbody id="stateBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- REPORTS BY TYPE -->
+        <!-- REPORTS BY TYPE (LEFT) -->
         <div class="card">
           <div class="card-header">
             <div class="card-title">
@@ -201,26 +170,26 @@ require_once __DIR__ . '/../inc/sidebar_admin.php';
           <div class="type-legend" id="typeLegend"></div>
         </div>
 
-      </div>
+        <!-- RESPONSE TIME TREND (RIGHT) -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="dot"></span>
+              Response Time Trend
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <select class="filter-select" id="trendRange">
+                <option value="7">Last 7 Days</option>
+                <option value="30" selected>Last 30 Days</option>
+                <option value="90">Last 3 Months</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-wrap line">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
 
-      <!-- RESPONSE TIME TREND -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">
-            <span class="dot"></span>
-            Response Time Trend
-          </div>
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <select class="filter-select" id="trendRange">
-              <option value="7">Last 7 Days</option>
-              <option value="30" selected>Last 30 Days</option>
-              <option value="90">Last 3 Months</option>
-            </select>
-          </div>
-        </div>
-        <div class="chart-wrap line">
-          <canvas id="trendChart"></canvas>
-        </div>
       </div>
 
     </section>

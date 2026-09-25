@@ -1,0 +1,328 @@
+-- ==============================================================================
+-- RescueLine Database Schema Definition
+-- Emergency Incident Reporting, Dispatch & Response Platform
+-- Charset: utf8mb4 | Collation: utf8mb4_unicode_ci | Engine: InnoDB
+-- ==============================================================================
+
+-- 1. USERS & RESPONDENTS TABLE
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `uuid` VARCHAR(36) NOT NULL UNIQUE,
+  `name` VARCHAR(100) NOT NULL,
+  `email` VARCHAR(150) NOT NULL UNIQUE,
+  `phone` VARCHAR(25) NOT NULL UNIQUE,
+  `password_hash` VARCHAR(255) NOT NULL,
+  `role` ENUM('superadmin', 'admin', 'respondent', 'dispatcher') NOT NULL DEFAULT 'respondent',
+  `status` ENUM('active', 'inactive', 'suspended') NOT NULL DEFAULT 'active',
+  `avatar` VARCHAR(255) NULL,
+  `state` VARCHAR(100) NULL,
+  `lga` VARCHAR(100) NULL,
+  `unit` VARCHAR(100) NULL,
+  `badge_number` VARCHAR(50) NULL,
+  `failed_login_attempts` INT UNSIGNED NOT NULL DEFAULT 0,
+  `locked_until` DATETIME NULL,
+  `last_login_at` DATETIME NULL,
+  `last_login_ip` VARCHAR(45) NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_users_email` (`email`),
+  INDEX `idx_users_phone` (`phone`),
+  INDEX `idx_users_role` (`role`),
+  INDEX `idx_users_status` (`status`),
+  INDEX `idx_users_state` (`state`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2. EMERGENCY CATEGORIES TABLE
+CREATE TABLE IF NOT EXISTS `categories` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(100) NOT NULL UNIQUE,
+  `slug` VARCHAR(100) NOT NULL UNIQUE,
+  `description` TEXT NULL,
+  `icon` VARCHAR(50) NOT NULL DEFAULT 'alert-circle',
+  `icon_class` VARCHAR(50) NOT NULL DEFAULT 'other',
+  `color` VARCHAR(20) NOT NULL DEFAULT '#e63946',
+  `priority_default` ENUM('low', 'medium', 'high', 'critical') NOT NULL DEFAULT 'medium',
+  `status` ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+  `display_order` INT NOT NULL DEFAULT 0,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_cat_slug` (`slug`),
+  INDEX `idx_cat_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3. COVERAGE STATES TABLE
+CREATE TABLE IF NOT EXISTS `states` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(100) NOT NULL UNIQUE,
+  `code` VARCHAR(10) NOT NULL UNIQUE,
+  `status` ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_states_name` (`name`),
+  INDEX `idx_states_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 4. COVERAGE LOCAL GOVERNMENT AREAS (LGAs) TABLE
+CREATE TABLE IF NOT EXISTS `lgas` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `state_id` INT UNSIGNED NOT NULL,
+  `name` VARCHAR(100) NOT NULL,
+  `status` ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uniq_state_lga` (`state_id`, `name`),
+  INDEX `idx_lga_state_id` (`state_id`),
+  INDEX `idx_lga_status` (`status`),
+  CONSTRAINT `fk_lgas_state` FOREIGN KEY (`state_id`) REFERENCES `states` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 5. EMERGENCY INCIDENT REPORTS TABLE
+CREATE TABLE IF NOT EXISTS `reports` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `report_code` VARCHAR(30) NOT NULL UNIQUE,
+  `category_id` INT UNSIGNED NULL,
+  `category_name` VARCHAR(100) NOT NULL,
+  `source` ENUM('ussd', 'sms', 'web', 'call', 'app') NOT NULL DEFAULT 'web',
+  `reporter_name` VARCHAR(100) NULL,
+  `reporter_phone` VARCHAR(25) NOT NULL,
+  `state` VARCHAR(100) NOT NULL,
+  `lga` VARCHAR(100) NOT NULL,
+  `address_landmark` TEXT NOT NULL,
+  `latitude` DECIMAL(10, 8) NULL,
+  `longitude` DECIMAL(11, 8) NULL,
+  `priority` ENUM('low', 'medium', 'high', 'critical') NOT NULL DEFAULT 'medium',
+  `status` ENUM('pending', 'assigned', 'responding', 'resolved', 'cancelled') NOT NULL DEFAULT 'pending',
+  `description` TEXT NOT NULL,
+  `casualty_count` INT UNSIGNED NOT NULL DEFAULT 0,
+  `injured_count` INT UNSIGNED NOT NULL DEFAULT 0,
+  `assigned_respondent_id` INT UNSIGNED NULL,
+  `assigned_at` DATETIME NULL,
+  `responding_at` DATETIME NULL,
+  `resolved_at` DATETIME NULL,
+  `response_time_minutes` INT UNSIGNED NULL,
+  `resolution_notes` TEXT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_rep_code` (`report_code`),
+  INDEX `idx_rep_status` (`status`),
+  INDEX `idx_rep_priority` (`priority`),
+  INDEX `idx_rep_state` (`state`),
+  INDEX `idx_rep_lga` (`lga`),
+  INDEX `idx_rep_created` (`created_at`),
+  CONSTRAINT `fk_reports_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_reports_respondent` FOREIGN KEY (`assigned_respondent_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6. REPORT AUDIT & TIMELINE HISTORY TABLE
+CREATE TABLE IF NOT EXISTS `report_timeline` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `report_id` INT UNSIGNED NOT NULL,
+  `user_id` INT UNSIGNED NULL,
+  `action` VARCHAR(100) NOT NULL,
+  `previous_status` VARCHAR(50) NULL,
+  `new_status` VARCHAR(50) NULL,
+  `note` TEXT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_timeline_rep` (`report_id`),
+  INDEX `idx_timeline_time` (`created_at`),
+  CONSTRAINT `fk_timeline_report` FOREIGN KEY (`report_id`) REFERENCES `reports` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_timeline_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7. NOTIFICATIONS & ALERTS TABLE
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT UNSIGNED NULL,
+  `report_id` INT UNSIGNED NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `message` TEXT NOT NULL,
+  `type` ENUM('critical', 'warning', 'info', 'success') NOT NULL DEFAULT 'info',
+  `icon` VARCHAR(50) NOT NULL DEFAULT 'bell',
+  `is_read` TINYINT(1) NOT NULL DEFAULT 0,
+  `read_at` DATETIME NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_notif_user` (`user_id`),
+  INDEX `idx_notif_read` (`is_read`),
+  INDEX `idx_notif_time` (`created_at`),
+  CONSTRAINT `fk_notif_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_notif_report` FOREIGN KEY (`report_id`) REFERENCES `reports` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 8. SMS COMMUNICATIONS & AUDIT LOGS TABLE
+CREATE TABLE IF NOT EXISTS `sms_logs` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `direction` ENUM('inbound', 'outbound') NOT NULL DEFAULT 'outbound',
+  `phone_number` VARCHAR(25) NOT NULL,
+  `message` TEXT NOT NULL,
+  `status` ENUM('queued', 'sent', 'delivered', 'failed', 'received') NOT NULL DEFAULT 'sent',
+  `gateway_reference` VARCHAR(100) NULL,
+  `report_id` INT UNSIGNED NULL,
+  `error_message` TEXT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_sms_phone` (`phone_number`),
+  INDEX `idx_sms_status` (`status`),
+  INDEX `idx_sms_time` (`created_at`),
+  CONSTRAINT `fk_sms_report` FOREIGN KEY (`report_id`) REFERENCES `reports` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 9. USSD SESSIONS & INTERACTIVE STATE TABLE
+CREATE TABLE IF NOT EXISTS `ussd_sessions` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `session_id` VARCHAR(100) NOT NULL UNIQUE,
+  `phone_number` VARCHAR(25) NOT NULL,
+  `service_code` VARCHAR(50) NOT NULL,
+  `current_step` VARCHAR(50) NOT NULL DEFAULT 'main',
+  `session_data` JSON NULL,
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_ussd_session` (`session_id`),
+  INDEX `idx_ussd_phone` (`phone_number`),
+  INDEX `idx_ussd_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 10. SECURITY RATE LIMITING & BRUTE FORCE SHIELD TABLE
+CREATE TABLE IF NOT EXISTS `rate_limits` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `identifier` VARCHAR(150) NOT NULL,
+  `action_key` VARCHAR(50) NOT NULL,
+  `attempts` INT UNSIGNED NOT NULL DEFAULT 1,
+  `first_attempt_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_attempt_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `blocked_until` DATETIME NULL,
+  UNIQUE KEY `uniq_rate_limit` (`identifier`, `action_key`),
+  INDEX `idx_rate_blocked` (`blocked_until`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 11. AUDIT TRAIL & SYSTEM ACTIVITY LOGS TABLE
+CREATE TABLE IF NOT EXISTS `activity_logs` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT UNSIGNED NULL,
+  `action` VARCHAR(100) NOT NULL,
+  `entity_type` VARCHAR(50) NULL,
+  `entity_id` INT UNSIGNED NULL,
+  `ip_address` VARCHAR(45) NOT NULL,
+  `user_agent` TEXT NULL,
+  `details` JSON NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_act_user` (`user_id`),
+  INDEX `idx_act_action` (`action`),
+  INDEX `idx_act_time` (`created_at`),
+  CONSTRAINT `fk_act_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 12. SYSTEM SETTINGS & PARAMETERS TABLE
+CREATE TABLE IF NOT EXISTS `system_settings` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `setting_key` VARCHAR(100) NOT NULL UNIQUE,
+  `setting_value` TEXT NULL,
+  `setting_group` VARCHAR(50) NOT NULL DEFAULT 'general',
+  `description` VARCHAR(255) NULL,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_settings_key` (`setting_key`),
+  INDEX `idx_settings_group` (`setting_group`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ==============================================================================
+-- INITIAL SEED DATA
+-- ==============================================================================
+
+-- Default Administrator (Password: Admin@Rescue2026!)
+INSERT INTO `users` (`id`, `uuid`, `name`, `email`, `phone`, `password_hash`, `role`, `status`, `unit`, `badge_number`)
+VALUES 
+  (1, 'a1b2c3d4-e5f6-47a8-b9c0-112233445566', 'Aisha Okonkwo', 'admin@rescueline.ng', '07087654321', '$2y$12$bQziFZM1PxawmEOmvgo9DeaOqVmhhwP86Y.QsYDhMIxbpTZnzqmAe', 'superadmin', 'active', 'HQ Command', 'ADMIN-001')
+ON DUPLICATE KEY UPDATE `email` = VALUES(`email`);
+
+-- Default Emergency Respondents (Password: Respondent@2026!)
+INSERT INTO `users` (`id`, `uuid`, `name`, `email`, `phone`, `password_hash`, `role`, `status`, `state`, `lga`, `unit`, `badge_number`)
+VALUES 
+  (2, 'b2c3d4e5-f6a7-48b9-c0d1-223344556677', 'Musa Ibrahim', 'musa.ibrahim@rescueline.ng', '08031234567', '$2y$12$jvftI0NSiR3ubvs9itWituWqU2fzJB2KUeHxRSnuBncMuvTgsoYWm', 'respondent', 'active', 'Kaduna', 'Kaduna South', 'Rapid Response 1', 'RESP-KD-001'),
+  (3, 'c3d4e5f6-a7b8-49c0-d1e2-334455667788', 'Amina Bello', 'amina.bello@rescueline.ng', '08123456789', '$2y$12$jvftI0NSiR3ubvs9itWituWqU2fzJB2KUeHxRSnuBncMuvTgsoYWm', 'respondent', 'active', 'Kaduna', 'Kaduna North', 'Medical Unit A', 'RESP-KD-002'),
+  (4, 'd4e5f6a7-b8c9-40d1-e2f3-445566778899', 'Yusuf Danladi', 'yusuf.danladi@rescueline.ng', '07056789012', '$2y$12$jvftI0NSiR3ubvs9itWituWqU2fzJB2KUeHxRSnuBncMuvTgsoYWm', 'respondent', 'active', 'Kano', 'Kano Municipal', 'Kano Central Fire', 'RESP-KN-001'),
+  (5, 'e5f6a7b8-c9d0-41e2-f3a4-556677889900', 'Fatima Ahmed', 'fatima.ahmed@rescueline.ng', '09098765432', '$2y$12$jvftI0NSiR3ubvs9itWituWqU2fzJB2KUeHxRSnuBncMuvTgsoYWm', 'respondent', 'active', 'FCT Abuja', 'Abuja Municipal', 'Federal EMS Squad', 'RESP-FCT-001'),
+  (6, 'f6a7b8c9-d0e1-42f3-a4b5-667788990011', 'Chinedu Okafor', 'chinedu.okafor@rescueline.ng', '08134567890', '$2y$12$jvftI0NSiR3ubvs9itWituWqU2fzJB2KUeHxRSnuBncMuvTgsoYWm', 'respondent', 'active', 'Lagos', 'Ikeja', 'Lagos Metro Squad', 'RESP-LA-001')
+ON DUPLICATE KEY UPDATE `email` = VALUES(`email`);
+
+-- Default Emergency Categories
+INSERT INTO `categories` (`id`, `name`, `slug`, `description`, `icon`, `icon_class`, `color`, `priority_default`, `status`, `display_order`)
+VALUES
+  (1, 'Fire Outbreak', 'fire', 'Reports involving building fires, wildfires, bush fires, electrical fire outbreaks, or explosions.', 'flame', 'fire', '#ef4444', 'critical', 'active', 1),
+  (2, 'Road Accident', 'accident', 'Traffic collisions, vehicular wrecks, highway pileups, and transport crashes requiring extraction.', 'car', 'accident', '#f97316', 'high', 'active', 2),
+  (3, 'Medical Emergency', 'medical', 'Urgent life-threatening medical situations, trauma, heart attacks, severe injuries, and health crises.', 'heart-pulse', 'medical', '#10b981', 'critical', 'active', 3),
+  (4, 'Security Threat', 'security', 'Armed robbery, kidnapping, violent disturbances, assault, riots, and active civil security threats.', 'shield-alert', 'security', '#3b82f6', 'critical', 'active', 4),
+  (5, 'Flood & Disaster', 'flood', 'Flooding incidents, rising water levels, severe storm destruction, structural collapse, and natural disasters.', 'waves', 'flood', '#06b6d4', 'high', 'active', 5),
+  (6, 'Domestic Incident', 'domestic', 'Domestic crises, child distress, neighborhood disputes with safety hazards.', 'home', 'domestic', '#8b5cf6', 'medium', 'active', 6),
+  (7, 'Building Collapse', 'building-collapse', 'Structural collapse of residential or commercial buildings, trapped occupants.', 'alert-triangle', 'collapse', '#dc2626', 'critical', 'active', 7),
+  (8, 'Other Emergency', 'other', 'Any unclassified emergency situation requiring urgent intervention or multi-agency assistance.', 'help-circle', 'other', '#64748b', 'medium', 'active', 8)
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
+
+-- Default Coverage States
+INSERT INTO `states` (`id`, `name`, `code`, `status`)
+VALUES
+  (1, 'Kaduna', 'KD', 'active'),
+  (2, 'Kano', 'KN', 'active'),
+  (3, 'FCT Abuja', 'FC', 'active'),
+  (4, 'Lagos', 'LA', 'active'),
+  (5, 'Rivers', 'RI', 'active'),
+  (6, 'Plateau', 'PL', 'active'),
+  (7, 'Niger', 'NI', 'active'),
+  (8, 'Oyo', 'OY', 'active'),
+  (9, 'Enugu', 'EN', 'active'),
+  (10, 'Borno', 'BO', 'active'),
+  (11, 'Zamfara', 'ZA', 'inactive')
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
+
+-- Default Coverage Local Government Areas (LGAs)
+INSERT INTO `lgas` (`id`, `state_id`, `name`, `status`)
+VALUES
+  (1, 1, 'Kaduna South', 'active'),
+  (2, 1, 'Kaduna North', 'active'),
+  (3, 1, 'Zaria', 'active'),
+  (4, 1, 'Chikun', 'active'),
+  (5, 1, 'Igabi', 'active'),
+  (6, 2, 'Kano Municipal', 'active'),
+  (7, 2, 'Fagge', 'active'),
+  (8, 2, 'Gwale', 'active'),
+  (9, 2, 'Tarauni', 'active'),
+  (10, 2, 'Nassarawa', 'active'),
+  (11, 3, 'Abuja Municipal', 'active'),
+  (12, 3, 'Bwari', 'active'),
+  (13, 3, 'Gwagwalada', 'active'),
+  (14, 3, 'Kuje', 'active'),
+  (15, 4, 'Ikeja', 'active'),
+  (16, 4, 'Etiosa', 'active'),
+  (17, 4, 'Lagos Mainland', 'active'),
+  (18, 4, 'Surulere', 'active'),
+  (19, 5, 'Port Harcourt', 'active'),
+  (20, 5, 'Obio-Akpor', 'active'),
+  (21, 6, 'Jos North', 'active'),
+  (22, 6, 'Jos South', 'active'),
+  (23, 7, 'Minna', 'active'),
+  (24, 7, 'Suleja', 'active'),
+  (25, 8, 'Ibadan North', 'active'),
+  (26, 8, 'Ibadan South-West', 'active'),
+  (27, 9, 'Enugu North', 'active'),
+  (28, 9, 'Enugu South', 'active'),
+  (29, 10, 'Maiduguri', 'active'),
+  (30, 10, 'Jere', 'active'),
+  (31, 11, 'Gusau', 'inactive')
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
+
+-- Default Seed Emergency Reports
+INSERT INTO `reports` (`id`, `report_code`, `category_id`, `category_name`, `source`, `reporter_name`, `reporter_phone`, `state`, `lga`, `address_landmark`, `latitude`, `longitude`, `priority`, `status`, `description`, `assigned_respondent_id`, `created_at`)
+VALUES
+  (1, 'RL-0024', 1, 'Fire Outbreak', 'ussd', 'Suleiman Garba', '08031234888', 'Kaduna', 'Kaduna South', 'Sheikh Abubakar Gumi Central Market, Block B', 10.51050000, 7.41650000, 'critical', 'responding', 'Active commercial building fire reported at central market stalls. Smoke billowing across multiple sectors.', 2, NOW() - INTERVAL 25 MINUTE),
+  (2, 'RL-0023', 2, 'Road Accident', 'web', 'Fatima Bello', '08123456999', 'Kaduna', 'Kaduna North', 'Independence Way near Stadium Roundabout', 10.52300000, 7.44030000, 'high', 'pending', 'Two passenger buses involved in head-on collision. Multiple passengers require medical evaluation and extraction.', NULL, NOW() - INTERVAL 45 MINUTE),
+  (3, 'RL-0022', 3, 'Medical Emergency', 'sms', 'John Emeka', '07056789111', 'FCT Abuja', 'Abuja Municipal', 'Area 1 Shopping Center, Garki', 9.03450000, 7.48120000, 'critical', 'assigned', 'Elderly patient collapsed with symptoms of acute cardiac distress. Bystanders requesting immediate ambulance dispatch.', 5, NOW() - INTERVAL 1 HOUR),
+  (4, 'RL-0021', 4, 'Security Threat', 'ussd', 'Anonymous', '09098765222', 'Kano', 'Kano Municipal', 'Sabon Gari Market entrance', 12.00220000, 8.59200000, 'critical', 'resolved', 'Armed disturbance reported near market gate. Law enforcement and security teams deployed and area secured.', 4, NOW() - INTERVAL 3 HOUR),
+  (5, 'RL-0020', 5, 'Flood & Disaster', 'ussd', 'Aliyu Kabir', '08065432333', 'Niger', 'Suleja', 'Madalla Low Cost housing area', 9.18000000, 7.18000000, 'high', 'resolved', 'Flash flood overflowing drainage canal, submerging residential access road. Rescue teams evacuated affected families.', NULL, NOW() - INTERVAL 6 HOUR)
+ON DUPLICATE KEY UPDATE `report_code` = VALUES(`report_code`);
+
+-- Default System Settings
+INSERT INTO `system_settings` (`setting_key`, `setting_value`, `setting_group`, `description`)
+VALUES
+  ('system_name', 'RescueLine Emergency Management', 'general', 'Platform title for SMS and emails'),
+  ('emergency_hotline', '0800-RESCUELINE', 'contact', 'Toll-free emergency hotline number'),
+  ('ussd_code', '*384*911#', 'ussd', 'USSD shortcode for emergency reports'),
+  ('sla_response_threshold_minutes', '15', 'dispatch', 'Target minutes before SLA breach alert is triggered'),
+  ('auto_sms_confirmation', '1', 'notifications', 'Send automated SMS confirmation to reporter'),
+  ('system_status', 'operational', 'system', 'Global platform operational state')
+ON DUPLICATE KEY UPDATE `setting_value` = VALUES(`setting_value`);

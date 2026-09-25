@@ -1,0 +1,18 @@
+{
+  "name": "rescueline",
+  "version": "1.0.0",
+  "description": "RescueLine Emergency Incident Reporting & Response Management System",
+  "scripts": {
+    "tunnel": "npx localtunnel --port 80",
+    "tunnel:custom": "npx localtunnel --port 80 --subdomain rescueline-emergency"
+  },
+  "keywords": [
+    "emergency",
+    "ussd",
+    "sms",
+    "rescueline",
+    "africastalking"
+  ],
+  "author": "RescueLine Team",
+  "license": "ISC"
+}
